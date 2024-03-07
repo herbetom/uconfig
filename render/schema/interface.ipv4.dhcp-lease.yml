@@ -9,7 +9,7 @@ properties:
     format: uc-mac
     examples:
     - 00:11:22:33:44:55
-  static-lease-offset:
+  lease-offset:
     description:
       The offset of the IP that shall be used in relation to the first IP
       in the available range.
