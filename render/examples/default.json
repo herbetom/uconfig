@@ -1,0 +1,85 @@
+{
+	"uuid": 2,
+
+	"unit": {
+                "name": "test config AP",
+                "location": "Office",
+                "timezone": "CET-1",
+		"leds-active": true
+        },
+
+	"country-code": "DE",
+
+	"radios": {
+		"2G": {
+			"channel-mode": "HE",
+			"channel-width": 20
+		},
+		"5G": {
+			"channel-mode": "HE",
+			"channel-width": 80,
+			"channel": 36
+		}
+	},
+
+	"interfaces": {
+		"wan": {
+			"role": "upstream",
+			"ports": {
+				"wan*": "auto"
+			},
+			"ipv4": {
+				"addressing": "dynamic"
+			},
+			"ipv6": {
+				"addressing": "dynamic"
+			}
+		},
+		"lan": {
+			"role": "downstream",
+			"services": [ "mdns", "ssh" ],
+			"ports": {
+				"lan*": "auto"
+			},
+
+			"ipv4": {
+				"addressing": "static",
+				"subnet": "192.168.11.1/24",
+				"dhcp": {
+					"lease-first": 10,
+					"lease-count": 100,
+					"lease-time": "6h"
+				}
+			},
+
+			"ipv6": {
+				"addressing": "static",
+				"dhcpv6": {
+					"mode": "hybrid"
+				}
+			},
+
+			"ssids": {
+				"nat": {
+					"purpose": "system-defaults",
+					"ssid": "OpenWrt",
+					"wifi-radios": [
+						"2G", "5G"
+					],
+					"bss-mode": "ap",
+					"encryption": {
+						"proto": "psk2",
+						"key": "aaaaaaaa",
+						"ieee80211w": "optional"
+					}
+				}
+			}
+		}
+	},
+
+	"services": {
+		"ssh": {
+			"port": 22
+		}
+	}
+}

@@ -1,0 +1,63 @@
+{
+	"uuid": 2,
+
+	"country-code": "DE",
+
+	"radios": {
+		"2G": {
+			"channel-mode": "HE",
+			"channel-width": 20
+		},
+		"5G": {
+			"channel-mode": "HE",
+			"channel-width": 80,
+			"channel": 36
+		}
+	},
+
+	"interfaces": {
+		"wan": {
+			"role": "upstream",
+			"services": [ "ssh" ],
+			"ports": {
+				"wan*": "auto",
+				"lan*": "auto"
+			},
+			"ipv4": {
+				"addressing": "dynamic"
+			},
+			"ipv6": {
+				"addressing": "dynamic"
+			},
+			"ssids": {
+				"main": {
+					"ssid": "OpenWrt-wpa2",
+					"wifi-radios": [
+						"2G", "5G"
+					],
+					"bss-mode": "ap",
+					"encryption": {
+						"proto": "wpa2"
+					},
+					"radius": {
+						"local": {
+							"server-identity": "uconfig",
+							"users": [
+								{
+									"user-name": "user",
+									"password": "password"
+								}
+							]
+						}
+					}
+				}
+			}
+		}
+	},
+
+	"services": {
+		"ssh": {
+			"port": 22
+		}
+	}
+}
