@@ -40,7 +40,15 @@ define Package/uconfig-websocket
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (WebSocket)
-  DEPENDS=uconfig +uwsd +pkgen +uconfig-cli +ucode-mod-log +ucode-mod-math +ucode-mod-digest
+  DEPENDS=uconfig +uwsd +pkgen +uconfig-cli +ucode-mod-log +ucode-mod-math +ucode-mod-digest +uconfig-mod-unetd +unet-rrm
+endef
+
+define Package/uconfig-client
+  SECTION:=utils
+  CATEGORY:=Utilities
+  SUBMENU:=uConfig
+  TITLE:=UCI renderer (Managed Client)
+  DEPENDS=uconfig +uconfig-cli +ucode-mod-log +ucode-mod-math +ucode-mod-digest +uconfig-mod-unetd +unet-rrm
 endef
 
 define Package/uconfig-mod-mdns
@@ -96,7 +104,7 @@ define Package/uconfig-mod-unetd
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (unetd plugin)
-  DEPENDS=uconfig +unetd +unet-cli
+  DEPENDS=uconfig +unetd +unet-cli +unetmsg
 endef
 
 define Build/Prepare
@@ -119,8 +127,9 @@ define Package/uconfig/conffiles
 /etc/uconfig/data/
 endef
 
-define Package/uconfig-server/conffiles
+define Package/uconfig-websocket/conffiles
 /etc/uconfig/webui.json
+/etc/uconfig/credentials
 endef
 
 define Package/uconfig/install
@@ -139,6 +148,10 @@ define Package/uconfig-cli/install
 	$(INSTALL_DIR) $(1)/usr/share/ucode/ $(1)/usr/sbin
 	$(CP) $(PKG_BUILD_DIR)/cli $(1)/usr/share/ucode/
 	$(LN) /usr/sbin/cli $(1)/usr/sbin/uconfig
+endef
+
+define Package/uconfig-client/install
+	$(CP) ./files-client/* $(1)
 endef
 
 define Package/uconfig-websocket/install
@@ -202,6 +215,7 @@ endef
 
 $(eval $(call BuildPackage,uconfig))
 $(eval $(call BuildPackage,uconfig-cli))
+$(eval $(call BuildPackage,uconfig-client))
 $(eval $(call BuildPackage,uconfig-websocket))
 $(eval $(call BuildPackage,uconfig-mod-adguardhome))
 $(eval $(call BuildPackage,uconfig-mod-fingerprint))

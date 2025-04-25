@@ -1,0 +1,61 @@
+{
+	"unit": {
+                "timezone": "Europe/Berlin",
+		"hostname": "gateway"
+        },
+
+	"radios": {
+		"2G": {
+			"channel-mode": "HE",
+			"channel-width": 20
+		},
+		"5G": {
+			"channel-mode": "HE",
+			"channel-width": 80,
+			"channel": 36
+		}
+	},
+
+	"interfaces": {
+		"main": {
+			"role": "upstream",
+			"services": [ "mdns", "ssh", "unet", "client", "fingerprint" ],
+			"vlan": {
+				"trunks": [ 100 ]
+			},
+			"ports": {
+				"wan*": "auto",
+				"lan*": "auto"
+			},
+			"ipv4": {
+				"addressing": "dynamic"
+			},
+			"ipv6": {
+				"addressing": "dynamic"
+			}
+		},
+		"guest": {
+			"role": "upstream",
+			"ports": {
+				"wan*": "auto",
+				"lan*": "auto"
+			},
+			"vlan": {
+				"id": 100
+			},
+			"ipv4": {
+				"addressing": "none"
+			},
+			"ipv6": {
+				"addressing": "dynamic"
+			},
+			"disable": true
+		}
+	},
+
+	"services": {
+		"ssh": {
+			"port": 22
+		}
+	}
+}

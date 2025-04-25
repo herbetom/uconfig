@@ -72,47 +72,6 @@ export function add_anonymous(location, name, content) {
 };
 
 /**
- * Purge the file attachment storage.
- *
- * Recursively deletes the file attachment storage and places any error
- * messages in the given logs array.
- *
- * @param {array} logs  The array to store log messages into
- */
-function purge(logs, dir) {
-	if (dir == null)
-		dir = basedir;
-
-	let d = fs.opendir(dir);
-
-	if (d) {
-		let e;
-
-		while ((e = d.read()) != null) {
-			if (e == '.' || e == '..')
-				continue;
-			let p = dir + '/' + e,
-			    s = fs.lstat(p);
-
-			if (s == null)
-				push(logs, sprintf("[W] Unable to lstat() path '%s': %s", p, fs.error()));
-			else if (s.type == 'directory')
-				purge(logs, p);
-			else if (!fs.unlink(p))
-				push(logs, sprintf("[W] Unable to unlink() path '%s': %s", p, fs.error()));
-		}
-
-		d.close();
-
-		if (dir != basedir && !fs.rmdir(dir))
-			push(logs, sprintf("[W] Unable to rmdir() path '%s': %s", dir, fs.error()));
-	}
-	else {
-		push(logs, sprintf("[W] Unable to opendir() path '%s': %s", dir, fs.error()));
-	}
-}
-
-/**
  * Recursively create the parent directories of the given path.
  *
  * Recursively creates the parent directory structure of the given
@@ -163,8 +122,6 @@ function mkdir_path(logs, path) {
  */
 export function generate(logs) {
 	let success = true;
-
-	purge(logs);
 
 	for (let path, content in files) {
 		if (!mkdir_path(logs, path)) {

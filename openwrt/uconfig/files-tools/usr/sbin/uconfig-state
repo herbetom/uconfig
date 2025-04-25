@@ -11,6 +11,7 @@ let ubus = libubus.connect();
 let pending = false;
 let devices = {};
 let l3_devices;
+let capabilities = json(readfile('/etc/uconfig/capabilities.json'));
 
 let model = datamodel.new();
 model.add_modules();
@@ -22,23 +23,6 @@ function add_mac(stations, mac) {
 	stations[mac] ??= {
 		mac,
 	};
-}
-
-function icon(name, value) {
-	switch (lc(name)) {
-	case 'tv':
-	case 'printer':
-	case 'laptop':
-	case 'speaker':
-	case 'apple':
-	case 'microsoft':
-		return lc(name);
-	case 'gaming':
-		return 'controller';
-	case 'google':
-		return 'android';
-	}
-	return value;
 }
 
 function network_interfaces() {
@@ -79,27 +63,14 @@ function arp(stations) {
 }
 
 function assoc_list(stations) {
-	let status = ubus.call('network.wireless', 'status');
+	let clients = ubus.call('rrm', 'get_clients');
 
-	for (let phy, radio in status) {
-		for (let iface in radio.interfaces) {
-			if (iface.config.mode != 'ap')
-				continue;
-
-			let clients = ubus.call(`hostapd.${iface.ifname}`, 'get_clients');
-			for (let mac, client in clients.clients) {
-				mac = uc(mac);
-				add_mac(stations, mac);
-				stations[mac].network = iface.config.network[0];;
-				stations[mac].wifi = {
-					band: radio.config.band,
-					ssid: iface.config.ssid,
-					tx_bytes: client?.bytes?.tx || 0,
-					rx_bytes: client?.bytes?.rx || 0,
-					signal: client?.signal || -99,
-				};
-			}
-		}
+	for (let mac, client in clients) {
+		mac = uc(mac);
+		add_mac(stations, mac);
+		stations[mac].network = client.network;
+		delete client.network;
+		stations[mac].wifi = client;
 	}
 }
 
@@ -171,14 +142,6 @@ function update() {
 	dhcp_leases(stations);
 	nlbwmon(stations);
 
-	for (let mac, station in stations) {
-		station.class_icon = icon(station.fingerprint?.class, 'pc-display-horizontal');
-		if (!station.fingerprint)
-			continue;
-          	if (station.fingerprint.vendor)
-			station.vendor_icon = icon(station.fingerprint.vendor, false);
-	}
-
 	let new_devices = {};
 
 	for (let mac, station in stations) {
@@ -196,12 +159,69 @@ function update() {
 	pending = false;
 }
 
+function ports(args) {
+	let status = ubus.call('network.device', 'status');
+	let roles = {};
+	let ports;
+
+	if (args.network) {
+		ports = readfile(`/tmp/uconfig/ports.${args.network}`);
+		if (ports)
+			ports = json(ports);
+	}
+
+	for (let role in [ 'wan', 'lan' ]) {
+		let spec = capabilities.network[role];
+		for (let i, ifname in spec) {
+			role = uc(role);
+			if (ports && !(ifname in ports))
+				continue;
+			push(roles[role] = roles[role] || [], {
+				netdev: ifname,
+				index: i,
+				carrier: status[ifname].carrier,
+				speed: status[ifname].speed,
+				macaddr: status[ifname].macaddr,
+				rx_bytes: status[ifname].statistics.rx_bytes,
+				tx_bytes: status[ifname].statistics.tx_bytes,
+			});
+		}
+	}
+
+	let rv = {};
+
+	for (let role, ports in roles) {
+		switch (length(ports)) {
+		case 0:
+			break;
+
+		case 1:
+			rv[role] = ports[0];
+			break;
+
+		default:
+			map(sort(ports, (a, b) => (a.index - b.index)), (port, i) => {
+				rv[role + (i + 1)] = port;
+			});
+		}
+	}
+	return rv;
+}
+
 let ubus_methods = {
-	list: {
+	devices: {
 		call: function(req) {
 			return devices;
 		},
 		args: {
+		}
+	},
+	ports: {
+		call: function(req) {
+			return ports(req.args);
+		},
+		args: {
+			network: '',
 		}
 	},
 	update: {
@@ -211,12 +231,11 @@ let ubus_methods = {
 		},
 		args: {
 		}
-
 	},
 };
 
 uloop.init();
-ubus.publish("devices", ubus_methods);
+ubus.publish("state", ubus_methods);
 let updateInterval;
 updateInterval = uloop.interval(60 * 1000, () => {
 	updateInterval.set(5 * 60 * 1000);

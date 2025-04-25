@@ -1,0 +1,76 @@
+#!/usr/bin/env ucode
+
+'use strict';
+
+import * as unetmsg from 'unetmsg.client';
+import * as libubus from 'ubus';
+import * as uloop from 'uloop';
+import * as fs from 'fs';
+
+uloop.init();
+let ubus = libubus.connect();
+
+function config_store(data) {
+	let unet = ubus.call('unetd', 'network_get');
+	let config = fs.readfile('/etc/uconfig/examples/webui-managed.json');
+	config = json(config);
+	config.unit.hostname = unet.networks.unet.local_host;
+	for (let k, v in data.unit)
+		config.unit[k] = v;
+	for (let k, v in data.main)
+		config.interfaces.main[k] = v;
+	for (let k, v in data.guest)
+		config.interfaces.guest[k] = v;
+	config.uuid = time();
+	fs.writefile('/tmp/uconfig.pending', config);
+
+	return system('uconfig_apply -t /tmp/uconfig.pending') == 0;
+}
+
+function config_apply() {
+	uloop.timer(5000, () => {
+		printf('timer\n');
+		system('uconfig_apply /tmp/uconfig.pending');
+	});
+	return { ok: true };
+}
+
+let chan = unetmsg.open(ubus);
+chan.publish('uconfig', (req) => {
+	let data = req.args;
+	switch (data.type) {
+	case 'info':
+		let system = ubus.call('system', 'info');
+		let board = ubus.call('system', 'board');
+		
+		let info = {
+			uptime: system.uptime
+		};
+
+		for (let key in [ 'model', 'board_name', ])
+			info[key] = board[key];
+		for (let key in [ 'revision', 'builddate', ])
+			info[key] = board.release[key];
+		for (let key in [ 'total', 'free', ])
+			info[key] = system.memory[key];
+		info.ports = ubus.call('state', 'ports');
+		return { info };
+	case 'config-store':
+		return { validate: config_store(data.data) };
+	case 'config-apply':
+		return config_apply();
+	}
+	return 0;
+});
+
+chan.subscribe('uconfig', (req) => {
+	let data = req.args;
+	switch(data.type) {
+	case 'reboot':
+		system('(/etc/init.d/unetd stop; sleep 2; reboot)&');
+		while(true) { }
+		break;
+	}
+});
+
+uloop.run();

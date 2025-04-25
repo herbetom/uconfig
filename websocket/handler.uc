@@ -7,13 +7,16 @@ import * as credentials from 'credentials';
 import * as datamodel from 'cli.datamodel';
 import { readfile, writefile } from 'fs';
 import { generate } from 'wizard';
-import { devices } from 'devices';
+import * as digest from 'digest';
 import * as users from 'users';
 import { ubus } from 'libubus';
 import * as state from 'state';
 import { timer } from 'uloop';
+import * as unet from 'unet';
 
 ulog_open(ULOG_SYSLOG | ULOG_STDIO, LOG_DAEMON, 'uconfig.server');
+
+unet.init();
 
 global.connections = {};
 global.ctx = {};
@@ -35,12 +38,14 @@ function broadcast(data, no_log) {
 	for (let name, connection in global.connections)
 		send(connection, data, no_log);
 }
+global.broadcast = broadcast;
 
-function shutdown() {
+function shutdown_server() {
 	global.shutdown = true;
 	for (let name, connection in global.connections)
 		connection.close(1012, 'Server is restarting');
 }
+global.shutdown_server = shutdown_server;
 
 let ping_timer;
 function ping() {
@@ -51,14 +56,15 @@ ping_timer = timer(1000, ping);
 
 let model = datamodel.new({
 	status_msg: (msg) => {
-		broadcast([ 'event', msg ]);
+//		broadcast([ 'event', msg ]);
 	},
 });
 model.add_modules();
 model.init();
+global.model = model;
 let cli = model.context();
 cli = cli.select([ 'uconfig' ]);
-cli.call(['event', 'subscribe']);
+//cli.call(['event', 'subscribe']);
 
 function connect_cb(connection) {
 	try {
@@ -92,7 +98,6 @@ export function onConnect(connection, protocols)
  
 	let cli = model.context();
 	cli = cli.select([ 'uconfig' ]);
-//	cli.call(['event', 'subscribe']);
 	let ctx = {
 		counter: 0,
 		n_messages: 0,
@@ -131,7 +136,11 @@ let states = {
 	},
 
 	devices: function(connection, data, cli) {
-		return ubus.call('devices', 'list');
+		return ubus.call('state', 'devices');
+	},
+
+	ports: function(connection, data, cli) {
+		return ubus.call('state', 'ports');
 	},
 
 	internet: function() {
@@ -151,7 +160,7 @@ let user = {
 
 let actions = {
 	reboot: function() {
-		shutdown();
+		shutdown_server();
 		timer(2000, () => {
 			ulog(LOG_INFO, 'rebooting\n');
 			ubus.call('system', 'reboot')
@@ -159,14 +168,12 @@ let actions = {
 	},
 
 	factory: function() {
-		shutdown();
+		shutdown_server();
 		timer(2000, () => {
 			ulog(LOG_INFO, 'factory resetting\n');
 			system('factoryreset -y -r');
 		});
 	},
-
-
 };
 
 let handlers = {
@@ -184,6 +191,7 @@ let handlers = {
 
 		ulog(LOG_INFO, `${data[0]} logged in \n`);
 		connection.data().authenticated = true;
+		connection.data().unet = digest.sha256(data[1]);;
 		send(connection, [ 'authenticated', { pendig_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
 	},
 
@@ -201,6 +209,19 @@ let handlers = {
 		let id = shift(data); 
 		let ret = cli.call(data);
 		send(connection, [ 'result', id, ret ]);
+	},
+
+	commit: function(connection, data, cli) {
+		let id = shift(data); 
+		cli.call([ 'write' ]);
+		let ret = unet.config_store();
+		if (!ret.ok)
+			return send(connection, [ 'result', id, ret ]);
+		ret = unet.config_apply();
+		if (!ret.ok)
+			return send(connection, [ 'result', id, ret ]);
+		ret = cli.call([ 'commit' ]);
+		return send(connection, [ 'result', id, ret ]);
 	},
 
 	get: function(connection, data, cli) {
@@ -276,12 +297,14 @@ let handlers = {
 	'setup-wizard': function(connection, data, cli) {
 		ulog(LOG_INFO, `${data[0]} completed setup wizard\n`);
 		
+		generate(data[0]);
+		if (data[0].mode == 'managed')
+			return;
+
 		global.settings.configured = true;
 		global.settings.mode = data[0].mode;
 
 		writefile('/etc/uconfig/webui.json', global.settings);
-		generate(data[0]);
-
 		cli.call([ 'reset' ]);
 		
 		connection.data().authenticated = true;
@@ -307,6 +330,15 @@ let handlers = {
 		let ret = { ok: true, data: { confirmed: false }};
 		if (!system('/usr/sbin/uconfig-upgrade download'))
 			ret.data.confirmed = true;
+		send(connection, [ 'result', id, ret ]);
+	},
+	
+	unet: function(connection, data) {
+		if (!length(data))
+			return;
+		let id = shift(data); 
+
+		let ret = unet.handler(connection, data);
 		send(connection, [ 'result', id, ret ]);
 	},
 };

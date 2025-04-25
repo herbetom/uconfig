@@ -148,6 +148,12 @@
 		});
 	}
 
+	/* store eth_ports in /tmp */
+	let ports = [];
+	for (let k, v in eth_ports)
+		push(ports, k);
+	fs.writefile(`/tmp/uconfig/ports.${name}`, ports);
+
 	/* configure WiFi */
 	let count = 0;
 	for (let i, ssid in interface.ssids) {

@@ -61,6 +61,11 @@ export function dry_run(ctx) {
 	return ctx.ok('Passed');
 };
 
+export function write(ctx) {
+	let path = '/tmp/uconfig.pending';
+	writefile(path, model.uconfig.current_cfg);
+};
+
 export function commit(ctx) {
 	let path = '/tmp/uconfig.pending';
 	writefile(path, model.uconfig.current_cfg);
@@ -99,8 +104,20 @@ let commit_call = {
 	call: function(ctx, argv) {
 		if (!model.uconfig.changed)
 			return ctx.error('NO_CHANGES', 'There are no pending changes\n');
-	
+
 		commit(ctx);
+
+		return ctx.ok('Done');
+	}
+};
+
+let write_call = {
+	help: 'Stash pending changes',
+	call: function(ctx, argv) {
+		if (!model.uconfig.changed)
+			return ctx.error('NO_CHANGES', 'There are no pending changes\n');
+	
+		write(ctx);
 
 		return ctx.ok('Done');
 	}
@@ -108,6 +125,8 @@ let commit_call = {
 
 export function add_node(name, obj) {
 	obj.commit = commit_call;
+	if (global.uconfig_webui)
+		obj.write = write_call;
 	return model.add_node(name, obj);
 };
 

@@ -4,10 +4,10 @@
 
 	let unet = json(fs.readfile('/etc/uconfig/data/unetd.json') || '{}');
 	let interfaces = services.lookup_interfaces("unet");
-	let enable = unet && !!length(interfaces);
+	let enable = !!length(interfaces);
 	
 	services.set_enabled("unetd", enable);
-	if (!enable)
+	if (!enable || !unet)
 		return;
 
 	let local_network = [];	

@@ -1,5 +1,6 @@
 import { readfile, writefile, unlink } from 'fs';
 import * as credentials from 'credentials';
+import * as unet from 'unet';
 
 let zoneinfo = json(readfile('/usr/share/ucode/uconfig/zoneinfo.json') || '{}');
 
@@ -35,9 +36,9 @@ function generate_config(data, config) {
 	credentials.passwd('admin', data.password);
 }
 
-export function generate(data) {
+function configurable(data) {
 	let config;
-	switch(data.mode) {
+	switch(data.standalone) {
 	case 'ap':
 		config = load_config('webui-ap.wizard');
 		break;
@@ -46,4 +47,20 @@ export function generate(data) {
 		break;
 	}
 	generate_config(data, config);
+}
+
+function managed(data) {
+	unet.join(data);	
+}
+
+export function generate(data) {
+	let config;
+	switch(data.mode) {
+	case 'configurable':
+		configurable(data);
+		break;
+	case 'managed':
+		managed(data);
+		break;
+	}
 };

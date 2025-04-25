@@ -48,7 +48,7 @@ function generate(file, verbose, test, no_apply) {
 
 	/* generate the UCI batch sequence */
 	stdout('generating config');
-	let batch = renderer.generate(state, logs, { files, services });
+	let batch = renderer.generate(state, logs, { files, services, test });
 
 	if (state.strict && length(logs)) {
 		push(logs, 'Rejecting config due to strict-mode validation');

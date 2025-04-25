@@ -10,12 +10,14 @@
 			warn('timezone is unknown');
 	}
 
-	/* set the password */
-	shell.password(unit.password);
+	if (!test) {
+		/* set the password */
+		shell.password(unit.password);
 
-	/* force the restart of the led script */
-	if (exists(unit, 'leds_active'))
-		services.set_enabled('led', 'restart');
+		/* force the restart of the led script */
+		if (exists(unit, 'leds_active'))
+			services.set_enabled('led', 'restart');
+	}
 -%}
 # Configure the unit/system
 set system.@system[-1].ttylogin={{ b(unit.tty_login) }}
