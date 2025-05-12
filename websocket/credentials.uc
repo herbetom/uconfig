@@ -45,3 +45,7 @@ export function passwd(username, password) {
 
 	fs.writefile('/etc/uconfig/credentials', users);
 };
+
+export function htpasswd(password) {
+	return utils.crypt(password, `$2y$10$${random_string(22)}`);
+};

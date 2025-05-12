@@ -22,6 +22,13 @@ function config_store(data) {
 	for (let k, v in data.guest)
 		config.interfaces.guest[k] = v;
 	config.uuid = time();
+	if (data.ssh?.['authorized-keys']) {
+		config.services.ssh = {
+			port: 22, 
+			'password-authentication': false,
+			'authorized-keys': data.ssh['authorized-keys'],
+		}
+	}
 	fs.writefile('/tmp/uconfig.pending', config);
 
 	return system('uconfig_apply -t /tmp/uconfig.pending') == 0;

@@ -110,8 +110,14 @@ function generate_config() {
 		guest: {
 			disable: active.interfaces.guest.disable || false,
 			ssids: active.interfaces.guest.ssids,
-		}
+		},
 	};
+
+        if ('ssh' in active.interfaces.main.services) {
+		config.ssh = {
+			'authorized-keys': active.services.ssh['authorized-keys'],
+		};
+	}
 
 	return config;
 }

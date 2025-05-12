@@ -192,7 +192,7 @@ let handlers = {
 		ulog(LOG_INFO, `${data[0]} logged in \n`);
 		connection.data().authenticated = true;
 		connection.data().unet = digest.sha256(data[1]);;
-		send(connection, [ 'authenticated', { pendig_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
+		send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
 	},
 
 	password: function(connection, data) {

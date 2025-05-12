@@ -27,7 +27,7 @@ function hostapd_assoc_list() {
 				continue;
 
 			let clients = ubus.call(`hostapd.${iface.ifname}`, 'get_clients');
-			for (let mac, assoc in clients.clients) {
+			for (let mac, assoc in clients?.clients) {
 				if (!assoc.authorized)
 					continue;
 				let band = '5G';

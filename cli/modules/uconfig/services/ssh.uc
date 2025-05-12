@@ -30,7 +30,7 @@ const ssh_editor = {
 			set: (ctx, val) => {
 				ctx.data.edit.ports = [];
 				for (let k in val)
-					push(ctx.data.edit.ports, k);
+					push(ctx.data.edit['authorized-keys'], k);
 			},
 			args: {
 				type: "string",

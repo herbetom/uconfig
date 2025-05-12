@@ -9,7 +9,6 @@ import * as uloop from 'uloop';
 
 let ubus = libubus.connect();
 let pending = false;
-let devices = {};
 let l3_devices;
 let capabilities = json(readfile('/etc/uconfig/capabilities.json'));
 
@@ -18,6 +17,7 @@ model.add_modules();
 model.init();
 let cli = model.context();
 cli = cli.select([ 'uconfig' ]);
+let fingerprints = {};
 
 function add_mac(stations, mac) {
 	stations[mac] ??= {
@@ -75,7 +75,7 @@ function assoc_list(stations) {
 }
 
 function fingerprint(stations) {
-	for (let mac, fingerprint in ubus.call('fingerprint', 'fingerprint')) {
+	for (let mac, fingerprint in fingerprints) {
 		mac = uc(mac);
 		add_mac(stations, mac);
 		stations[mac].fingerprint = fingerprint;
@@ -128,10 +128,7 @@ function nlbwmon(stations) {
 	}
 }
 
-function update() {
-	if (pending)
-		return;
-
+function devices() {
 	let stations = {};
 	pending = true;
 	network_interfaces();
@@ -142,21 +139,24 @@ function update() {
 	dhcp_leases(stations);
 	nlbwmon(stations);
 
-	let new_devices = {};
+	let devices = {};
 
 	for (let mac, station in stations) {
 		if (!station?.network)
 			continue;
-		new_devices[station.network] ??= {};
-		new_devices[station.network][mac] = station;	
+		devices[station.network] ??= {};
+		devices[station.network][mac] = station;	
 		if (station.mac)
 			delete station.mac;
 		if (station.network)
 			delete station.network;
 	}
 
-	devices = new_devices;
-	pending = false;
+	return devices;
+}
+
+function update() {
+	fingerprints = ubus.call('fingerprint', 'fingerprint');
 }
 
 function ports(args) {
@@ -211,7 +211,7 @@ function ports(args) {
 let ubus_methods = {
 	devices: {
 		call: function(req) {
-			return devices;
+			return devices();
 		},
 		args: {
 		}
