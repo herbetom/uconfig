@@ -5,6 +5,7 @@
 import * as unetmsg from 'unetmsg.client';
 import * as libubus from 'ubus';
 import * as uloop from 'uloop';
+import { readfile } from 'fs';
 
 let remote_assoc_list = {};
 let remote_rrm_nr = {};
@@ -20,6 +21,7 @@ function tx(data) {
 
 function hostapd_assoc_list() {
 	let assoc_list = {};
+	let host = replace(readfile('/proc/sys/kernel/hostname'), '\n', '');
 	let status = ubus.call('network.wireless', 'status');
 	for (let phy, radio in status) {
 	       for (let iface in radio.interfaces) {
@@ -45,6 +47,7 @@ function hostapd_assoc_list() {
 					tx_rate: assoc.rate.tx,
 					signal: assoc.signal,
 					network: iface.config.network[0],
+					host,
 				};
 				for (let key in [ 'he', 'vht', 'ht' ])
 					if (assoc[key]) {
@@ -57,6 +60,13 @@ function hostapd_assoc_list() {
 	return assoc_list;
 }
 
+function local_rrm_nr() {
+	let rrm_nr = [];
+	for (let ifname, info in hostapd)
+		push(rrm_nr, info.rrm_nr);
+	return { rrm_nr };
+}
+
 function hostapd_update_rrm_nr() {
 	warn('update hostapd rrm_net_set\n');
 	for (let iface, hapd in hostapd) {
@@ -67,6 +77,11 @@ function hostapd_update_rrm_nr() {
 					continue;
 				push(list, rrm_nr)
 			}
+		for (let rrm_nr in local_rrm_nr().rrm_nr) {
+			if (hapd.bssid != rrm_nr[0] && hapd.ssid != rrm_nr[1])
+				continue;
+			push(list, rrm_nr)
+		}
 		ubus.call('hostapd.' + iface, 'rrm_nr_set', { list });
 	}
 }
@@ -88,13 +103,6 @@ function recv_remote_rrm_nr(host, data) {
 function recv_remote_assoc_list(host, data) {
 	warn(`RX: ${host} ${data}\n`);
 	remote_assoc_list[host] = data;
-}
-
-function local_rrm_nr() {
-	let rrm_nr = [];
-	for (let ifname, info in hostapd)
-		push(rrm_nr, info.rrm_nr);
-	return { rrm_nr };
 }
 
 function chan_send_rrm_nr() {
@@ -138,13 +146,16 @@ chan.publish('rrm', (req) => {
 function hostapd_add(path, obj) {
 	printf('adding %s\n', path);
 	let ifname = obj[1];
+	let status = ubus.call(path, 'get_status');
 	hostapd[ifname] = {
 		rrm_nr: ubus.call(path, 'rrm_nr_get_own').value,
-		ssid: ubus.call(path, 'get_status').ssid,
+		bssid: status.bssid,
+		ssid: status.ssid,
 	};
 	ubus.call(path, 'bss_mgmt_enable', { 'neighbor_report': 1, 'beacon_report': 1, 'bss_transition': 1 });
 	ubus.call(path, 'rrm_nr_set', { list: [] });
 	chan_send_rrm_nr();
+	update_rrm_nr_refresh_timer();
 }
 
 function hostapd_remove(path, obj) {
@@ -152,6 +163,7 @@ function hostapd_remove(path, obj) {
 	let ifname = obj[1];
 	delete hostapd[ifname];
 	chan_send_rrm_nr();
+	update_rrm_nr_refresh_timer();
 }
 
 function unsub_object(add, id, path) {

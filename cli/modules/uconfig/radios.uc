@@ -24,6 +24,9 @@ const radio_editor = {
 			default: function(ctx) {
 				return ctx.data.default_width;
 			},
+			set: (ctx, val) => {
+				ctx.data.edit['channel-width'] = +val;
+			},
 			required: true,
 			args: {
 				type: 'enum',
@@ -92,7 +95,7 @@ function create_band(band, values) {
 	while (width <= (values.max_width || 20)) {
 		if (width < 160)
 			default_width = width;
-		push(channel_width, width);
+		push(channel_width, '' + width);
 		width *= 2;
 	}
 

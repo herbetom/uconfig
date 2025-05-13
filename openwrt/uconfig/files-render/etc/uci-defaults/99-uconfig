@@ -65,10 +65,13 @@ uci -c $SHADOW commit
 
 /usr/libexec/uconfig/capabilities.uc
 
-[ -f /usr/bin/pkgen -a ! -d /etc/uconfig/certificates/ ] && {
+[ -f /usr/bin/pkgen -a ! -f /etc/uconfig/certificates/ca.pem ] && {
 	mkdir -p /etc/uconfig/certificates/
-	/usr/bin/pkgen -s CN=$hname,O=OpenWrt ca /etc/uconfig/certificates/ca.pem
-	/usr/bin/pkgen -s CN=$hname,O=OpenWrt cert /etc/uconfig/certificates/ca.pem /etc/uconfig/certificates/cert.pem
+	cn=$(cat /etc/board.json  | jsonfilter -e '@.system.label_macaddr')
+	[ -z "$cn" ] && cn=$(cat /sys/class/net/eth0/address)
+	cn=$(echo $cn | tr -d : | awk '{print tolower($0)}')
+	/usr/bin/pkgen -s CN=$cn,O=OpenWrt ca /etc/uconfig/certificates/ca.pem
+	/usr/bin/pkgen -s CN=$cn,O=OpenWrt cert /etc/uconfig/certificates/ca.pem /etc/uconfig/certificates/cert.pem
 }
 
 uconfig_apply -n /etc/uconfig/uconfig.active

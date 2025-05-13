@@ -6,7 +6,7 @@ import * as utils from 'uconfig.utils';
 import * as math from 'math';
 import * as fs from 'fs';
 
-let users = fs.readfile('/etc/uconfig/credentials');
+let users = fs.readfile('/etc/uconfig/webui/credentials');
 if (users)
 	users = json(users);
 users ??= {
@@ -43,7 +43,7 @@ export function passwd(username, password) {
 
 	users[username].crypt = utils.crypt(password, `$5$${random_string(16)}`);;
 
-	fs.writefile('/etc/uconfig/credentials', users);
+	fs.writefile('/etc/uconfig/webui/credentials', users);
 };
 
 export function htpasswd(password) {

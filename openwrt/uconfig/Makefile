@@ -107,6 +107,14 @@ define Package/uconfig-mod-unetd
   DEPENDS=uconfig +unetd +unet-cli +unetmsg
 endef
 
+define Package/uconfig-mod-nlbwmon
+  SECTION:=utils
+  CATEGORY:=Utilities
+  SUBMENU:=uConfig
+  TITLE:=UCI renderer (nlbwmon plugin)
+  DEPENDS=uconfig +nlbwmon
+endef
+
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) $(CURDIR)/../../ $(PKG_BUILD_DIR)/
@@ -128,8 +136,8 @@ define Package/uconfig/conffiles
 endef
 
 define Package/uconfig-websocket/conffiles
-/etc/uconfig/webui.json
-/etc/uconfig/credentials
+/etc/uconfig/webui/webui.json
+/etc/uconfig/webui/credentials
 endef
 
 define Package/uconfig/install
@@ -157,7 +165,7 @@ endef
 define Package/uconfig-websocket/install
 	$(INSTALL_DIR) $(1)/usr/share/ucode/uconfig $(1)/www-uconfig/
 	$(CP) $(PKG_BUILD_DIR)/websocket/ $(1)/usr/share/ucode/uconfig
-	$(CP) $(PKG_BUILD_DIR)/www/* $(1)/www-uconfig/
+	$(CP) $(PKG_BUILD_DIR)/webui/* $(1)/www-uconfig/
 	$(CP) ./files-websocket/* $(1)
 
 	$(INSTALL_DIR) $(1)/usr/lib/ucode/uconfig/
@@ -181,12 +189,19 @@ define Package/uconfig-mod-fingerprint/install
 	$(CP) $(PKG_BUILD_DIR)/render/modules/fingerprint/* $(1)/usr/share/ucode/uconfig/templates/services/
 endef
 
-define Package/uconfig-mod-adguardhome/install
+define Package/uconfig-mod-nlbwmon/install
 	$(INSTALL_DIR) $(1)/usr/share/ucode/uconfig/templates/services/
+	$(CP) $(PKG_BUILD_DIR)/render/modules/nlbwmon/* $(1)/usr/share/ucode/uconfig/templates/services/
+endef
+
+define Package/uconfig-mod-adguardhome/install
+	$(INSTALL_DIR) $(1)/usr/share/ucode/uconfig/templates/services/ 
 	$(INSTALL_DIR) $(1)/usr/share/ucode/ureader/
+	$(INSTALL_DIR) $(1)/usr/share/ucode/cli/modules/uconfig/services/
 	$(CP) $(PKG_BUILD_DIR)/render/ureader-modules/schemaServiceAdguardhome.uc $(1)/usr/share/ucode/ureader/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.uc $(1)/usr/share/ucode/uconfig/templates/services/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.yaml $(1)/usr/share/ucode/uconfig/
+	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/cli-adguardhome.uc $(1)/usr/share/ucode/cli/modules/uconfig/services/
 endef
 
 define Package/uconfig-mod-lldp/install
@@ -224,3 +239,4 @@ $(eval $(call BuildPackage,uconfig-mod-lldp))
 $(eval $(call BuildPackage,uconfig-mod-mdns))
 $(eval $(call BuildPackage,uconfig-mod-mesh-batman))
 $(eval $(call BuildPackage,uconfig-mod-unetd))
+$(eval $(call BuildPackage,uconfig-mod-nlbwmon))

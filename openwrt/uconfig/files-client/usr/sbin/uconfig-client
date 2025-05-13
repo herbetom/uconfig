@@ -12,7 +12,7 @@ let ubus = libubus.connect();
 
 function config_store(data) {
 	let unet = ubus.call('unetd', 'network_get');
-	let config = fs.readfile('/etc/uconfig/examples/webui-managed.json');
+	let config = fs.readfile('/etc/uconfig/webui/webui-managed.json');
 	config = json(config);
 	config.unit.hostname = unet.networks.unet.local_host;
 	for (let k, v in data.unit)
@@ -21,7 +21,7 @@ function config_store(data) {
 		config.interfaces.main[k] = v;
 	for (let k, v in data.guest)
 		config.interfaces.guest[k] = v;
-	config.uuid = time();
+	config.uuid = data.uuid;
 	if (data.ssh?.['authorized-keys']) {
 		config.services.ssh = {
 			port: 22, 
@@ -29,6 +29,9 @@ function config_store(data) {
 			'authorized-keys': data.ssh['authorized-keys'],
 		}
 	}
+	config.services.mdns = {
+		'additional-hostnames': [ config.unit.hostname ],
+	};
 	fs.writefile('/tmp/uconfig.pending', config);
 
 	return system('uconfig_apply -t /tmp/uconfig.pending') == 0;
@@ -36,10 +39,20 @@ function config_store(data) {
 
 function config_apply() {
 	uloop.timer(5000, () => {
-		printf('timer\n');
-		system('uconfig_apply /tmp/uconfig.pending');
+		system('uconfig_apply -u /tmp/uconfig.pending');
 	});
 	return { ok: true };
+}
+
+function config_push(data) {
+	let active = fs.readfile('/etc/uconfig/configs/uconfig.active');
+	if (active)
+		active = json(active);
+	if (!active || active.uuid == data.uuid)
+		return false;
+	config_store(data);
+	config_apply();
+	return true;
 }
 
 let chan = unetmsg.open(ubus);
@@ -61,11 +74,19 @@ chan.publish('uconfig', (req) => {
 		for (let key in [ 'total', 'free', ])
 			info[key] = system.memory[key];
 		info.ports = ubus.call('state', 'ports');
+		let thermal = fs.readfile('/sys/class/hwmon/hwmon0/temp1_input');
+		if (thermal)
+			info.thermal = +thermal / 1000;
 		return { info };
 	case 'config-store':
 		return { validate: config_store(data.data) };
 	case 'config-apply':
 		return config_apply();
+	case 'config-push':
+		return { update: config_push(data.data) };
+	default:
+		warn(`unknown command ${data.type} ${data.data}\n`);
+		break;
 	}
 	return 0;
 });

@@ -63,6 +63,7 @@ export function dry_run(ctx) {
 
 export function write(ctx) {
 	let path = '/tmp/uconfig.pending';
+	model.uconfig.current_cfg.uuid = time();
 	writefile(path, model.uconfig.current_cfg);
 };
 
@@ -74,8 +75,7 @@ export function commit(ctx) {
 		if (system(`/sbin/uconfig_apply -t ${path}`))
 			return ctx.error('TEST_FAILED', 'Dry-run failed');
 
-	let ret = system(`/sbin/uconfig_apply ${path}`);
-	unlink(path);
+	let ret = system(`/sbin/uconfig_apply ${global.uconfig_webui ? '-u' : ''} ${path}`);
 	
 	if (ret)
 		return ctx.error('APPLY_FAILED', 'Failed to apply config');

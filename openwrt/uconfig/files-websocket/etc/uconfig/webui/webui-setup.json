@@ -21,9 +21,9 @@
 	},
 
 	"interfaces": {
-		"wan": {
+		"uplink": {
 			"role": "upstream",
-			"services": [ "mdns", "ssh", "webui", "unet" ],
+			"services": [ "ssh", "webui", "unet" ],
 			"vlan": {
 				"trunks": [ 100 ]
 			},
@@ -37,9 +37,9 @@
 				"addressing": "dynamic"
 			}
 		},
-		"lan": {
+		"main": {
 			"role": "downstream",
-			"services": [ "mdns", "ssh", "webui", "fingerprint" ],
+			"services": [ "ssh", "webui" ],
 			"ports": {
 				"lan*": "auto"
 			},

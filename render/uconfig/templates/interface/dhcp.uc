@@ -3,10 +3,15 @@ let name = interface.name;
 let dhcp = ipv4.dhcp_pool || { ignore: 1 };
 let dhcpv6 = ipv6.dhcpv6 || {};
 
+if (interface.role == 'downstream')
+	dhcp.use_dns ??= [ split(interface.ipv4?.subnet, '/')[0] ];
+
 function use_dns() {
 	let ret = '';
 	for (let k, v in dhcp.use_dns)
 		ret += ',' + v;
+	if (length(ret))
+		ret = '6' + ret;
 	return ret;
 }
 %}
@@ -16,7 +21,7 @@ set dhcp.{{ name }}.start={{ dhcp.lease_first }}
 set dhcp.{{ name }}.limit={{ dhcp.lease_count }}
 set dhcp.{{ name }}.leasetime={{ dhcp.lease_time }}
 set dhcp.{{ name }}.ignore={{ b(dhcp.ignore) }}
-add_list dhcp.{{ name }}.dhcp_option='6{{ use_dns() }}'
+add_list dhcp.{{ name }}.dhcp_option={{ use_dns() }}
 {%	if (interface.role != 'upstream'):
 		if (dhcpv6.mode == 'hybrid'): %}
 set dhcp.{{ name }}.ra=server

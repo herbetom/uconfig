@@ -1,3 +1,4 @@
+import { ulog, LOG_INFO } from 'log';
 import * as unetmsg from 'unetmsg.client';
 import * as digest from 'digest';
 import { ubus } from 'libubus';
@@ -6,10 +7,17 @@ import * as fs from 'fs';
 let chan;
 let cli;
 
+function log(msg) {
+	ulog(LOG_INFO, `uconfig: ${msg}`);
+}
+
 function unet_enroll(data) {
 	global.broadcast([ 'unet', data ]);
-	global.shutdown_server();
-	system('(uconfig_apply /etc/uconfig/examples/webui-managed.json)&');
+	switch(data) {
+	case 'join_done':
+		system('(uconfig_apply /etc/uconfig/webui/webui-managed.json)&');
+		break;
+	}
 }
 
 function open_cli() {
@@ -23,16 +31,21 @@ function open_cli() {
 function create_network(connection) {
 	if (fs.stat('/etc/uconfig/data/unetd.json'))
 		return;
+	log('creating unetd network');
 	let passwd = connection.data().unet;
-	cli.call([ 'create', 'password', passwd ]);
+	let ret = cli.call([ 'create', 'password', passwd ]);
+	log(ret);
+	sleep(3000);
 }
 
 function onboard(connection, data) {
 	if (length(data) < 2)
 		return;
 	create_network(connection);
+	log(`onboard device ${data[0]} ${data[1]}`);
 	let edit = cli.select([ 'edit',  'unet',]);
 	let ret = edit?.call([ 'invite', data[0], 'access-key', '' + data[1], 'timeout', '60', 'password', connection.data().unet ]);
+	log(ret);
 	return ret;
 }
 
@@ -96,8 +109,11 @@ export function handler(connection, data) {
 
 function generate_config() {
 	let active = fs.readfile('/tmp/uconfig.pending');
+	if (!active)
+		active = fs.readfile('/etc/uconfig/configs/uconfig.active');
 	active = json(active);
 	let config = {
+		uuid: active.uuid,
 		unit: {
 			timezone: active.unit.timezone,
 			'leds-active' : active.unit['leds-active'],
@@ -134,7 +150,7 @@ export function config_store() {
 };
 
 export function config_apply() {
-	chan.request('uconfig', 'config-apply', generate_config(), (msg) => {
+	chan.request('uconfig', 'config-apply', {}, (msg) => {
 		warn(`Got reply: ${msg}\n`);
 	});
 	return { ok: true };
@@ -142,10 +158,21 @@ export function config_apply() {
 
 export function join(data) {
 	open_cli();
-	let ret = cli.call([ 'join', 'access-key', data['access-key'], 'local-network', 'wan_4' ]); 
+	log('start onboarding');
+	let ret = cli.call([ 'join', 'access-key', data['access-key'], 'local-network', 'uplink_4' ]); 
+	log(ret);
 };
 
 export function init() {
 	chan = unetmsg.open(ubus);
 	chan.publish('uconfig', (req) => {});
+	chan.subscribe('uconfig', (req) => {
+		/* ... */
+		}, () => {
+			log('client list changed');
+			chan.request('uconfig', 'config-push', generate_config(), (msg) => {
+	        	        warn(`Got reply: ${msg}\n`);
+			});
+		});
+
 };

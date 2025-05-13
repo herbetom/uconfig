@@ -9,16 +9,13 @@
 	if (!enable)
 		return;
 
-	let hosts = {
-		[ global.capabilities.serial + ".local" ]: {
-			"hostname": global.capabilities.serial + ".local"
-		}
-	};
+	let hosts = {};
 	for (let hostname in mdns?.additional_hostnames || [])
 		hosts[hostname + ".local"] = {
 			hostname: hostname + ".local" 
 		};
-	fs.writefile('/etc/umdns/uconfig.json', hosts);
+	if (length(hosts))
+		fs.writefile('/etc/umdns/uconfig.json', hosts);
 %}
 
 # Configure MDNS

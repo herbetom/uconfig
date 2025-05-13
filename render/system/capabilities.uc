@@ -14,8 +14,8 @@ let board = fs.readfile('/etc/board.json');
 board = json(board);
 
 let initial;
-if (fs.stat('/etc/uconfig/examples/webui-setup.json'))
-	initial = fs.readfile('/etc/uconfig/examples/webui-setup.json');
+if (fs.stat('/etc/uconfig/webui/webui-setup.json'))
+	initial = fs.readfile('/etc/uconfig/webui/webui-setup.json');
 else
 	initial = fs.readfile('/etc/uconfig/examples/initial.json');
 initial = json(initial);

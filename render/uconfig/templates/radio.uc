@@ -134,6 +134,9 @@ set wireless.{{ phy.section }}.legacy_rates={{ b(radio.legacy_rates) }}
 set wireless.{{ phy.section }}.maxassoc={{ radio.maximum_clients }}
 set wireless.{{ phy.section }}.acs_exclude_dfs={{ b(!radio.allow_dfs) }}
 set wireless.{{ phy.section }}.band={{ s(lc(radio.band)) }}
+{% if (lc(radio.band) == '5g'): %}
+set wireless.{{ phy.section }}.background_radar=1
+{% endif %}
 set wireless.{{ phy.section }}.noscan=1
 set wireless.{{ phy.section }}.reconf=1
 {% if (radio.allow_dfs) for (let channel in radio.valid_channels): %}

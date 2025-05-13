@@ -23,7 +23,7 @@ global.ctx = {};
 global.uconfig_webui = true;
 global.shutdown = false;
 
-global.settings = json(readfile('/etc/uconfig/webui.json') || '{}');
+global.settings = json(readfile('/etc/uconfig/webui/webui.json') || '{}');
 
 function send(connection, data, no_log) {
 	let peer = connection?.info()?.peer_address;
@@ -107,7 +107,7 @@ export function onConnect(connection, protocols)
 	};
 	connection.data(ctx);
 
-        let name = connection_name(connection);
+	let name = connection_name(connection);
 	global.connections[name] = connection;
 	global.ctx[name] = ctx;
 
@@ -119,20 +119,24 @@ export function onConnect(connection, protocols)
 
 export function onClose(connection, code, reason)
 {
-        let name = connection_name(connection);
+	let name = connection_name(connection);
 	ulog(LOG_INFO, name + ' disconnected\n');
-        if (global.connections[name].cli)
+	if (global.connections[name].cli)
 		delete global.connections[name].cli;
-        delete global.connections[name];
-        delete global.ctx[name];
+	delete global.connections[name];
+	delete global.ctx[name];
 };
 
 let states = {
 	system: function(connection) {
-		return {
+		let ret = {
 			board: ubus.call('system', 'board'),
 			info: ubus.call('system', 'info'),
 		};
+		let thermal = readfile('/sys/class/hwmon/hwmon0/temp1_input');
+		if (thermal)
+			ret.thermal = +thermal / 1000;
+		return ret;
 	},
 
 	devices: function(connection, data, cli) {
@@ -141,6 +145,10 @@ let states = {
 
 	ports: function(connection, data, cli) {
 		return ubus.call('state', 'ports');
+	},
+
+	radios: function(connection, data, cli) {
+		return ubus.call('state', 'radios');
 	},
 
 	internet: function() {
@@ -153,7 +161,7 @@ let user = {
 		return users.list();
 	},
 
-	password: function(connection, data) {
+	password: function(connection, data, cli) {
 		return users.set_password(data)
 	},
 };
@@ -195,12 +203,12 @@ let handlers = {
 		send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
 	},
 
-	password: function(connection, data) {
-		if (length(data) < 2)
+	password: function(connection, data, cli) {
+		if (length(data) < 1)
 			return;
-		let id = shift(data); 
+		cli.call([ 'edit', 'services', 'adguardhome', 'set', 'htpasswd', credentials.htpasswd(data[0]) ]);
+		cli.call([ 'commit' ]);
 		credentials.passwd('admin', data[0]);
-		send(connection, [ 'result', id, true ]);
 	},
 
 	command: function(connection, data, cli) {
@@ -255,7 +263,8 @@ let handlers = {
 			let data = cli.call(path);
 			if (!data?.ok) {
 				ret.ok = false;
-				ret.errors = [ ...ret.errors, ...data?.errors ];
+				if (data)
+					ret.errors = [ ...ret.errors, ...data?.errors ];
 			}
 		}
 		if (!ret.ok)
@@ -275,7 +284,7 @@ let handlers = {
 		let id = shift(data);
 		let ret = { ok: false };
 		if (states[data[0]]) {
-			ret.data = states[data[0]](connection, data, cli);
+			ret.data = states[data[0]](connection, data, cli) || {};
 			ret.ok = true;
 		}
 		send(connection, [ 'result', id, ret ]);
@@ -297,14 +306,14 @@ let handlers = {
 	'setup-wizard': function(connection, data, cli) {
 		ulog(LOG_INFO, `${data[0]} completed setup wizard\n`);
 		
-		generate(data[0]);
+		generate(connection, data[0]);
 		if (data[0].mode == 'managed')
 			return;
 
 		global.settings.configured = true;
 		global.settings.mode = data[0].mode;
 
-		writefile('/etc/uconfig/webui.json', global.settings);
+		writefile('/etc/uconfig/webui/webui.json', global.settings);
 		cli.call([ 'reset' ]);
 		
 		connection.data().authenticated = true;
@@ -339,6 +348,23 @@ let handlers = {
 		let id = shift(data); 
 
 		let ret = unet.handler(connection, data);
+		send(connection, [ 'result', id, ret ]);
+	},
+
+	service: function(connection, data, cli) {
+		if (length(data) < 3)
+			return;
+		let id = shift(data);
+		let ret = {
+			ok: false,
+		};
+		switch(data[0]) {
+		case 'check':
+			let service = ubus.call('service', 'list', { name: data[1] });
+			ret.ok = true;
+			ret.data = !!length(service);
+			break;
+		}
 		send(connection, [ 'result', id, ret ]);
 	},
 };

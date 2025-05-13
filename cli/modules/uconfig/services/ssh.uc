@@ -28,7 +28,7 @@ const ssh_editor = {
 			help: "List of public keys that may connect",
 			multiple: true,
 			set: (ctx, val) => {
-				ctx.data.edit.ports = [];
+				ctx.data.edit['authorized-keys'] = [];
 				for (let k in val)
 					push(ctx.data.edit['authorized-keys'], k);
 			},
