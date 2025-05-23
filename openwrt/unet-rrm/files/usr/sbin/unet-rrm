@@ -114,7 +114,7 @@ function chan_send_rrm_nr() {
 function chan_request_rrm_nr() {
 	chan.request('rrm', 'rrm_nr', {}, (msg) => {
 		recv_remote_rrm_nr(msg.host, msg.rrm_nr);
-	});
+	}, () => {});
 }
 
 chan = unetmsg.open(ubus);

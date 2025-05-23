@@ -151,6 +151,10 @@ let states = {
 		return ubus.call('state', 'radios');
 	},
 
+	traffic: function(connection, data, cli) {
+		return ubus.call('state', 'traffic');
+	},
+
 	internet: function() {
 		return state.internet();
 	},
@@ -201,6 +205,10 @@ let handlers = {
 		connection.data().authenticated = true;
 		connection.data().unet = digest.sha256(data[1]);;
 		send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
+	},
+
+	'log-out': function(connection, data) {
+		connection.close(1000, 'Successful operation, connection not required anymore');
 	},
 
 	password: function(connection, data, cli) {

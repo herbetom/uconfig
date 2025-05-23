@@ -19,6 +19,30 @@ model.init();
 let cli = model.context();
 cli = cli.select([ 'uconfig' ]);
 let fingerprints = {};
+let wan_traffic = {
+	up: [],
+	down: []
+};
+
+function traffic() {
+	let status = ubus.call('network.device', 'status');
+	let statistics = status['br-wan']?.statistics;
+
+	if (!statistics)
+		return;
+
+	if (wan_traffic.tx_bytes) {
+		push(wan_traffic.up, statistics.tx_bytes - wan_traffic.tx_bytes);
+		shift(wan_traffic.up);
+	}
+	if (wan_traffic.rx_bytes) {
+		push(wan_traffic.down, statistics.rx_bytes - wan_traffic.rx_bytes);
+		shift(wan_traffic.down);
+	}
+
+	wan_traffic.tx_bytes = statistics.tx_bytes;
+	wan_traffic.rx_bytes = statistics.rx_bytes;
+}
 
 function freq2channel(freq) {
 	if (freq == 2484)
@@ -39,7 +63,7 @@ function freq2channel(freq) {
 
 let bandwidths = {
 	'2g': {
-		'40': [ '3', '7', '11' ],
+		'40': [ '1', '5', '9', '13' ],
 	},
 	'5g': {
 		'40': [ '36', '44', '52', '60', '100', '108',
@@ -223,7 +247,7 @@ function nlbwmon(stations) {
 	}
 }
 
-function devices() {
+function lookup_devices() {
 	let stations = {};
 	pending = true;
 	network_interfaces();
@@ -250,8 +274,12 @@ function devices() {
 	return devices;
 }
 
-function update() {
+function update_fingerprint() {
 	fingerprints = ubus.call('fingerprint', 'fingerprint');
+}
+
+function update_devices_db() {
+	let devices = lookup_devices();
 }
 
 function ports(args) {
@@ -306,7 +334,7 @@ function ports(args) {
 let ubus_methods = {
 	devices: {
 		call: function(req) {
-			return devices();
+			return lookup_devices();
 		},
 		args: {
 		}
@@ -326,22 +354,41 @@ let ubus_methods = {
 		args: {
 		}
 	},
-	update: {
+	fingerprint_update: {
 		call: function(req) {
-			update();
+			update_fingerprint();
 			return 0;
+		},
+		args: {
+		}
+	},
+	traffic: {
+		call: function() {
+			return {
+				up: wan_traffic.up,
+				down: wan_traffic.down,
+			};
 		},
 		args: {
 		}
 	},
 };
 
+for (let i = 0; i < 12; i++) {
+	push(wan_traffic.up, 0);
+	push(wan_traffic.down, 0);
+}
+
 uloop.init();
 ubus.publish('state', ubus_methods);
-let updateInterval;
-updateInterval = uloop.interval(60 * 1000, () => {
-	updateInterval.set(5 * 60 * 1000);
-	update();
+let update_fingerprintInterval;
+update_fingerprintInterval = uloop.interval(5 * 60 * 1000, () => {
+	update_fingerprint();
+	update_devices_db();
+});
+
+uloop.interval(10 * 1000, () => {
+	traffic();
 });
 
 uloop.run();
