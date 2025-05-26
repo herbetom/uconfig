@@ -96,7 +96,7 @@ define Package/uconfig-mod-fingerprint
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (fingerprint plugin)
-  DEPENDS=uconfig +ufp +udhcpsnoop
+  DEPENDS=uconfig +ufp +ufp-neigh +udhcpsnoop
 endef
 
 define Package/uconfig-mod-unetd
