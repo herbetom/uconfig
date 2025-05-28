@@ -62,6 +62,7 @@
 		},
 		"guest": {
 			"role": "upstream",
+			"services": [ "mdns", "fingerprint" ],
 			"ports": {
 				"wan*": "auto",
 				"lan*": "auto"

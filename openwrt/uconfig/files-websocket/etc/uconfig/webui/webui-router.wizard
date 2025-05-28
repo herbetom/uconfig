@@ -89,7 +89,7 @@
 		},
 		"guest": {
 			"role": "downstream",
-			"services": [ "mdns", "ssh", "webui", "fingerprint" ],
+			"services": [ "mdns", "fingerprint" ],
 			"ports": {
 				"lan*": "auto"
 			},

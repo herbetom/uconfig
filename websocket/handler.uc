@@ -320,7 +320,7 @@ let handlers = {
 
 		global.settings.configured = true;
 		global.settings.mode = data[0].mode;
-
+		global.settings.standalone = data[0].standalone;
 		writefile('/etc/uconfig/webui/webui.json', global.settings);
 		cli.call([ 'reset' ]);
 		

@@ -75,7 +75,7 @@ function list(connection, password) {
 function reboot(connection, data) {
 	if (length(data) < 1)
 		return { ok: false };
-	chan.send('uconfig', 'reboot', { ok: true });
+	chan.send_host(data[0], 'uconfig', 'reboot', { ok: true });
 	return { ok: true };
 }
 

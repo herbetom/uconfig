@@ -303,7 +303,7 @@ function ports(args) {
 				netdev: ifname,
 				index: i,
 				carrier: status[ifname].carrier,
-				speed: status[ifname].speed,
+				speed: replace(status[ifname].speed, 'F', ''),
 				macaddr: status[ifname].macaddr,
 				rx_bytes: status[ifname].statistics.rx_bytes,
 				tx_bytes: status[ifname].statistics.tx_bytes,
