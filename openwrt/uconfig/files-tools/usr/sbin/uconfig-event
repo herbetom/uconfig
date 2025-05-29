@@ -207,10 +207,16 @@ function hapd_subscriber_remove_cb(remove) {
 function log_subscriber_notify_cb(notify) {
 	let msg = split(notify.data.msg, ': ', 2);
 	let daemon = split(msg[0], '[')[0];
+	let data;
 
 	switch(daemon) {
 	case 'dropbear':
 		event('ssh', 'event',  { msg: msg[1] });
+		break;
+	case 'uconfig.server':
+		data = split(msg[1], ' ');
+		if (data[1] in ['connected', 'disconnected'])
+			event('webui', data[1],  { ip: split(data[0], ':')[0] });
 		break;
 	}
 }

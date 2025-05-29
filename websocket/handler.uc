@@ -11,6 +11,7 @@ import * as digest from 'digest';
 import * as users from 'users';
 import { ubus } from 'libubus';
 import * as state from 'state';
+import { event } from 'event';
 import { timer } from 'uloop';
 import * as unet from 'unet';
 
@@ -158,6 +159,10 @@ let states = {
 	internet: function() {
 		return state.internet();
 	},
+
+	events: function() {
+		return ubus.call('event', 'log');
+	},
 };
 
 let user = {
@@ -237,6 +242,7 @@ let handlers = {
 		if (!ret.ok)
 			return send(connection, [ 'result', id, ret ]);
 		ret = cli.call([ 'commit' ]);
+		event('config', 'applied', {});
 		return send(connection, [ 'result', id, ret ]);
 	},
 

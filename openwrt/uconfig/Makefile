@@ -201,7 +201,7 @@ define Package/uconfig-mod-adguardhome/install
 	$(CP) $(PKG_BUILD_DIR)/render/ureader-modules/schemaServiceAdguardhome.uc $(1)/usr/share/ucode/ureader/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.uc $(1)/usr/share/ucode/uconfig/templates/services/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.yaml $(1)/usr/share/ucode/uconfig/
-	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/cli-adguardhome.uc $(1)/usr/share/ucode/cli/modules/uconfig/services/
+	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/cli-adguardhome.uc $(1)/usr/share/ucode/cli/modules/uconfig/services/adguardhome.uc
 endef
 
 define Package/uconfig-mod-lldp/install

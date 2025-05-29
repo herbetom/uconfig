@@ -4,6 +4,7 @@
 
 import * as utils from 'uconfig.utils';
 import * as math from 'math';
+import { event } from 'event';
 import * as fs from 'fs';
 
 let users = fs.readfile('/etc/uconfig/webui/credentials');
@@ -44,6 +45,8 @@ export function passwd(username, password) {
 	users[username].crypt = utils.crypt(password, `$5$${random_string(16)}`);;
 
 	fs.writefile('/etc/uconfig/webui/credentials', users);
+
+	event('password', 'changed', {});
 };
 
 export function htpasswd(password) {

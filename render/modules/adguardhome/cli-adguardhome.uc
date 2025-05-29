@@ -27,6 +27,11 @@ const adguard_editor = {
 		'servers': {
 			help: 'The upstream DNS servers that will be used',
 			multiple: true,
+			set: (ctx, val) => {
+				ctx.data.edit['servers'] = [];
+				for (let k in val)
+					push(ctx.data.edit['servers'], k);
+			},
 			args: {
 				type: 'string',
 			}
