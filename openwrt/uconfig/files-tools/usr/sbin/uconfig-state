@@ -264,7 +264,7 @@ function lookup_devices() {
 		if (!station?.network)
 			continue;
 		devices[station.network] ??= {};
-		devices[station.network][mac] = station;	
+		devices[station.network][lc(station.hostname || mac)] = station;
 		if (station.mac)
 			delete station.mac;
 		if (station.network)
