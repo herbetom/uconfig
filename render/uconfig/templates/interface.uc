@@ -7,6 +7,14 @@
 		return;
 	}
 
+	/* make sure the easymesh config is present if enabled */
+	if (interface.easymesh in [ 'hybrid', 'controller' ] &&
+	    (!interface.easymesh_fronthaul || !interface.easymesh_backhaul)) {
+		warn('easymesh controller interfaces require front and back-haul settings');
+		return;
+	}
+	let easymesh_agent = (interface.easymesh in [ 'hybrid', 'agent' ]);
+
 	/* work out the bridge vlan of this interface */
 	let this_vid = interface.vlan.id || interface.vlan.dyn_id;
 
@@ -123,7 +131,7 @@
 		netdev = '';
 	else
 		/* anything else requires a bridge-vlan */
-		include('interface/bridge-vlan.uc', { interface, netdev, eth_ports, this_vid, bridgedev, batman });
+		include('interface/bridge-vlan.uc', { interface, netdev, eth_ports, this_vid, bridgedev, batman, easymesh_agent });
 
 	/* generate UCI common to all interfaces */
 	include('interface/common.uc', {
@@ -156,20 +164,28 @@
 
 	/* configure WiFi */
 	let count = 0;
-	for (let i, ssid in interface.ssids) {
-		if (ssid.disable)
-			continue;
-		/* 'wds-repeater' is a place-holder, if selected create two BSS */
-		let modes = (ssid.bss_mode == 'wds-repeater') ?
-			[ 'wds-sta', 'wds-ap' ] : [ ssid.bss_mode ];
-		for (let mode in modes) {
-			include('interface/ssid.uc', {
-				location: location + '/ssids/' + i,
-				ssid: { ...ssid, bss_mode: mode },
-				count: count++,
-				name,
-				network
+	if (interface.easymesh)
+		include('interface/easymesh.uc', {
+				location,
+				interface,
+				bridgedev,
+				netdev,
 			});
+	else
+		for (let i, ssid in interface.ssids) {
+			if (ssid.disable)
+				continue;
+			/* 'wds-repeater' is a place-holder, if selected create two BSS */
+			let modes = (ssid.bss_mode == 'wds-repeater') ?
+				[ 'wds-sta', 'wds-ap' ] : [ ssid.bss_mode ];
+			for (let mode in modes) {
+				include('interface/ssid.uc', {
+					location: location + '/ssids/' + i,
+					ssid: { ...ssid, bss_mode: mode },
+					count: count++,
+					name,
+					network
+				});
+			}
 		}
-	}
 %}

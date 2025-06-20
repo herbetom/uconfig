@@ -146,13 +146,13 @@ chan.publish('rrm', (req) => {
 function hostapd_add(path, obj) {
 	printf('adding %s\n', path);
 	let ifname = obj[1];
+	ubus.call(path, 'bss_mgmt_enable', { 'neighbor_report': true, 'beacon_report': true, 'bss_transition': true });
 	let status = ubus.call(path, 'get_status');
 	hostapd[ifname] = {
 		rrm_nr: ubus.call(path, 'rrm_nr_get_own').value,
 		bssid: status.bssid,
 		ssid: status.ssid,
 	};
-	ubus.call(path, 'bss_mgmt_enable', { 'neighbor_report': 1, 'beacon_report': 1, 'bss_transition': 1 });
 	ubus.call(path, 'rrm_nr_set', { list: [] });
 	chan_send_rrm_nr();
 	update_rrm_nr_refresh_timer();

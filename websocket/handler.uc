@@ -3,6 +3,7 @@
 'use strict';
 
 import { ulog_open, ulog, ULOG_SYSLOG, ULOG_STDIO, LOG_DAEMON, LOG_INFO } from 'log';
+import { installed_modules } from 'modules';
 import * as credentials from 'credentials';
 import * as datamodel from 'cli.datamodel';
 import { readfile, writefile } from 'fs';
@@ -67,16 +68,22 @@ let cli = model.context();
 cli = cli.select([ 'uconfig' ]);
 //cli.call(['event', 'subscribe']);
 
+function send_authenticated(connection) {
+	send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.type, modules: installed_modules() }]);
+}
+
+function send_setup_required(connection) {
+	send(connection, [ 'setup-required', { modules: installed_modules() }]);
+}
+
 function connect_cb(connection) {
 	try {
-		let event = 'login-required';
-
 		if (connection.data()?.authenticate)
-			event = 'authenticated';
+			return send_authenticated(connection);
 		if (!global.settings.configured)
-			event = 'setup-required';
+			return send_setup_required(connection);
 
-		send(connection, [ event ]);
+		send(connection, [ 'login-required' ]);
 	} catch(e) {
 		warn(`${e.stacktrace[0].context}\n`);
 		return;
@@ -121,7 +128,7 @@ export function onConnect(connection, protocols)
 export function onClose(connection, code, reason)
 {
 	let name = connection_name(connection);
-	ulog(LOG_INFO, name + ' disconnected\n');
+	ulog(LOG_INFO, name + ` disconnected ${connection.data().authenticated ? connection.data().user : ''}\n`);
 	if (global.connections[name].cli)
 		delete global.connections[name].cli;
 	delete global.connections[name];
@@ -141,7 +148,7 @@ let states = {
 	},
 
 	devices: function(connection, data, cli) {
-		return ubus.call('state', 'devices');
+		return ubus.call('state', 'devices', { arp: data[1] == 'arp' });
 	},
 
 	ports: function(connection, data, cli) {
@@ -196,23 +203,29 @@ let actions = {
 let handlers = {
 	authenticate: function(connection, data) {
 		if (connection?.data()?.authenticate) {
-			send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode }]);
+			send_authenticated(connection);
 			return;
 		}
+		let name = connection_name(connection);
 
 		if (length(data) != 2 ||
 		    !credentials.login(data[0], data[1])) {
+			ulog(LOG_INFO, `${name} wrong-password ${data[0]}\n`);
 			send(connection, [ 'wrong-password' ]);
 			return;
 		}
-
-		ulog(LOG_INFO, `${data[0]} logged in \n`);
+	
+		ulog(LOG_INFO, `${name} logged-in ${data[0]}\n`);
+		connection.data().user = data[0];
 		connection.data().authenticated = true;
 		connection.data().unet = digest.sha256(data[1]);;
-		send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode } ]);
+		send_authenticated(connection);
 	},
 
 	'log-out': function(connection, data) {
+		let name = connection_name(connection);
+		ulog(LOG_INFO, `${name} logged-out ${connection.data().user}\n`);
+		connection.data().authenticated = false;
 		connection.close(1000, 'Successful operation, connection not required anymore');
 	},
 
@@ -326,12 +339,12 @@ let handlers = {
 
 		global.settings.configured = true;
 		global.settings.mode = data[0].mode;
-		global.settings.standalone = data[0].standalone;
+		global.settings.type = data[0].type;
 		writefile('/etc/uconfig/webui/webui.json', global.settings);
 		cli.call([ 'reset' ]);
 		
 		connection.data().authenticated = true;
-		send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.mode }]);
+		send_authenticated(connection);
 	},
 
 	'firmware-check': function(connection, data) {
@@ -413,13 +426,11 @@ export function onData(connection, data, final)
 			let handler = shift(msg);
 			if (!global.settings.configured) {
 				if (handler != 'setup-wizard') {
-					send(connection, [ 'setup-required' ]);
-					return;
+					return send_setup_required(connection);
 				}
 			} else if (!connection.data().authenticated) {
 				if (handler != 'authenticate') {
-					send(connection, [ 'login-required' ]);
-					return;
+					return send(connection, [ 'login-required' ]);
 				}
 			}
 

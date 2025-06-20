@@ -92,7 +92,11 @@ properties:
       ".+":
         $ref: "https://uconfig.openwrt.org/schema/v1/interface/ssid/multi-psk/"
   rate-limit:
-    $ref: "https://uconfig.openwrt.org/schema/v1/interface/ssid/rate-limit/"
+    anyOf:
+      - $ref: "https://uconfig.openwrt.org/schema/v1/interface/ssid/rate-limit/"
+      - description:
+          The rate to which hosts will be shaped. Values are in Mbps
+        type: integer
   roaming:
     anyOf:
       - $ref: "https://uconfig.openwrt.org/schema/v1/interface/ssid/roaming/"

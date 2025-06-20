@@ -3,7 +3,7 @@ import * as editor from 'cli.object-editor';
 
 function is_proto_static(ctx, args, named) {
 	let addressing = named.addressing;
-	if (ctx.data.edit)
+	if (ctx.data.edit?.addressing)
 		addressing ??= ctx.data.edit.addressing;
 	return addressing == 'static';
 }
@@ -115,7 +115,7 @@ const ipv4_editor = {
 
 		subnet: {
 			help: 'This option defines the static IPv4 of the logical interface in CIDR notation',
-			available: is_proto_static,
+//			available: is_proto_static,
 			args: {
 				type: 'cidr4',
 				allow_auto: true,
@@ -124,7 +124,7 @@ const ipv4_editor = {
 
 		gateway: {
 			help: 'This option defines the static IPv4 gateway of the logical interface',
-			available: is_proto_static,
+//			available: is_proto_static,
 			args: {
 				type: 'ipv4',
 			}
@@ -135,7 +135,7 @@ const ipv4_editor = {
 			help: "Define which DNS servers shall be used.",
 			multiple: true,
 			attribute: 'use-dns',
-			available: is_proto_static,
+//			available: is_proto_static,
 			args: {
 				type: 'ipv4',
 			}
@@ -420,7 +420,14 @@ const ssid_editor = {
 			}
 		},
 
-		'rate-limit-ingress': {
+		'rate-limit': {
+			help: 'The rate to which hosts will be shaped. Value is in Mbps',
+			available: is_ap_mode,
+			args: {
+				type: 'int',
+			}
+		},
+	/*	'rate-limit-ingress': {
 			help: 'The ingress rate to which hosts will be shaped. Values are in Mbps',
 			attribute: 'ingress-rate',
 			available: is_ap_mode,
@@ -445,6 +452,7 @@ const ssid_editor = {
 				type: 'int',
 			}
 		},
+	*/
 	}
 };
 

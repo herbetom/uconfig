@@ -2,7 +2,7 @@ import { ubus } from 'libubus';
 
 export function internet() {
 	let name = 'uplink';
-	if (global.settings.mode == 'ap')
+	if (global.settings.type == 'ap')
 		name = 'main';
 	let iface = ubus.call(`network.interface.${name}`, 'status');
 	let iface_4 = ubus.call(`network.interface.${name}_4`, 'status');

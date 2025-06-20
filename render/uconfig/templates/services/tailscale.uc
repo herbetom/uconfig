@@ -1,4 +1,6 @@
 {%
+	if (!services.is_present('tailscale'))
+		return;
 	let interfaces = services.lookup_interfaces("tailscale");
 	let enable = length(interfaces);
 	services.set_enabled("tailscale", !!enable);

@@ -19,6 +19,11 @@ include $(INCLUDE_DIR)/cmake.mk
 CMAKE_SOURCE_DIR:=$(PKG_BUILD_DIR)/src
 CMAKE_BINARY_DIR:=$(PKG_BUILD_DIR)/src
 
+define uconfig/module
+	$(INSTALL_DIR) $(1)/etc/uconfig/modules/
+	touch $(1)/etc/uconfig/modules/$(2)
+endef
+
 define Package/uconfig
   SECTION:=utils
   CATEGORY:=Utilities
@@ -40,7 +45,7 @@ define Package/uconfig-websocket
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (WebSocket)
-  DEPENDS=uconfig +uwsd +pkgen +uconfig-cli +ucode-mod-log +ucode-mod-math +ucode-mod-digest +uconfig-mod-unetd +unet-rrm
+  DEPENDS=uconfig +uwsd +pkgen +uconfig-cli +ucode-mod-log +ucode-mod-math +ucode-mod-digest +uconfig-mod-nlbwmon +unet-rrm +uconfig-mod-fingerprint
 endef
 
 define Package/uconfig-client
@@ -96,7 +101,7 @@ define Package/uconfig-mod-fingerprint
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (fingerprint plugin)
-  DEPENDS=uconfig +ufp +ufp-neigh +udhcpsnoop
+  DEPENDS=uconfig +ufp +ufp-neigh +udhcpsnoop +uconfig-mod-mdns
 endef
 
 define Package/uconfig-mod-unetd
@@ -113,6 +118,14 @@ define Package/uconfig-mod-nlbwmon
   SUBMENU:=uConfig
   TITLE:=UCI renderer (nlbwmon plugin)
   DEPENDS=uconfig +nlbwmon
+endef
+
+define Package/uconfig-mod-mesh-easy
+  SECTION:=utils
+  CATEGORY:=Utilities
+  SUBMENU:=uConfig
+  TITLE:=UCI renderer (mesh-easy plugin)
+  DEPENDS=uconfig umapd
 endef
 
 define Build/Prepare
@@ -133,6 +146,7 @@ define Package/uconfig/conffiles
 /etc/uconfig/configs/
 /etc/uconfig/certificates/
 /etc/uconfig/data/
+/etc/uconfig/devices/
 endef
 
 define Package/uconfig-websocket/conffiles
@@ -141,7 +155,7 @@ define Package/uconfig-websocket/conffiles
 endef
 
 define Package/uconfig/install
-	$(INSTALL_DIR) $(1)/usr/share/ucode/ $(1)/usr/libexec/uconfig/ $(1)/etc/uconfig/configs $(1)/etc/uconfig/data $(1)/sbin
+	$(INSTALL_DIR) $(1)/usr/share/ucode/ $(1)/usr/libexec/uconfig/ $(1)/etc/uconfig/configs $(1)/etc/uconfig/data $(1)/etc/uconfig/devices $(1)/sbin
 	$(CP) $(PKG_BUILD_DIR)/render/{ureader,uconfig} $(1)/usr/share/ucode/
 	$(CP) $(PKG_BUILD_DIR)/render/lib/* $(1)/usr/share/ucode/uconfig
 	$(CP) $(PKG_BUILD_DIR)/render/system/*.uc $(1)/usr/libexec/uconfig
@@ -160,6 +174,7 @@ endef
 
 define Package/uconfig-client/install
 	$(CP) ./files-client/* $(1)
+	$(call uconfig/module,$1,uconfig-client)
 endef
 
 define Package/uconfig-websocket/install
@@ -202,6 +217,7 @@ define Package/uconfig-mod-adguardhome/install
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.uc $(1)/usr/share/ucode/uconfig/templates/services/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/*.yaml $(1)/usr/share/ucode/uconfig/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/adguardhome/cli-adguardhome.uc $(1)/usr/share/ucode/cli/modules/uconfig/services/adguardhome.uc
+	$(call uconfig/module,$1,adguardhome)
 endef
 
 define Package/uconfig-mod-lldp/install
@@ -222,10 +238,17 @@ define Package/uconfig-mod-unetd/install
 	$(INSTALL_DIR) $(1)/usr/share/ucode/uconfig/templates/services/ $(INSTALL_DIR) $(1)/usr/share/ucode/cli/modules/uconfig/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/unet/unet.uc $(1)/usr/share/ucode/uconfig/templates/services/
 	$(CP) $(PKG_BUILD_DIR)/render/modules/unet/cli-unet.uc $(1)/usr/share/ucode/cli/modules/uconfig/unet.uc
+	$(call uconfig/module,$1,unetd)
 endef
 
 define Package/uconfig-mod-mesh-batman/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults/
+	$(call uconfig/module,$1,batman-adv)
+endef
+
+define Package/uconfig-mod-mesh-easy/install
+	$(INSTALL_DIR) $(1)/etc/uci-defaults/
+	$(CP) ./modules/mesh-easy.defaults $(1)/etc/uci-defaults/uconfig-mesh-easy
 endef
 
 $(eval $(call BuildPackage,uconfig))
@@ -240,3 +263,4 @@ $(eval $(call BuildPackage,uconfig-mod-mdns))
 $(eval $(call BuildPackage,uconfig-mod-mesh-batman))
 $(eval $(call BuildPackage,uconfig-mod-unetd))
 $(eval $(call BuildPackage,uconfig-mod-nlbwmon))
+$(eval $(call BuildPackage,uconfig-mod-mesh-easy))

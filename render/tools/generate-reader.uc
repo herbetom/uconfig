@@ -586,7 +586,7 @@ let GeneratorProto = {
 		this.print(indent, '		let module = require(\'ureader.schema' + moduleName + '\');');
 		this.print(indent, '		return module.validate(location, value, errors);');
 		this.print(indent, '	} catch(e) {');
-		this.print(indent, '		push(errors, [ location, "is missing its module. Please install %s."  ]);', valueSpec['$module']);
+		this.print(indent, '		warn("Missing module. Please install %s.");', valueSpec['$module']);
 		this.print(indent, '	}');
 		this.print(indent, '}\n');
 

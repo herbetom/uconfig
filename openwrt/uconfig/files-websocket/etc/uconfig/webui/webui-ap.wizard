@@ -36,7 +36,7 @@
 			"ssids": {
 				"main": {
 					"template": "encrypted",
-					"security": "compatibility",
+					"security": "maximum",
 					"ssid": "OpenWrt",
 					"wifi-radios": [
 						"2G", "5G"
@@ -71,13 +71,15 @@
 				"id": 100
 			},
 			"ipv4": {
-				"addressing": "none"
+				"addressing": "dynamic"
 			},
 			"ssids": {
 				"guest": {
 					"template": "encrypted",
-					"security": "compatibility",
+					"security": "maximum",
 					"ssid": "OpenWrt-Guest",
+					"isolate-clients": true,
+					"rate-limit": 0,
 					"wifi-radios": [
 						"2G", "5G"
 					],

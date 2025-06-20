@@ -49,7 +49,7 @@ function generate_config(connection, data, config) {
 
 function configurable(connection, data) {
 	let config;
-	switch(data.standalone) {
+	switch(data.type) {
 	case 'ap':
 		config = load_config('webui-ap.wizard');
 		break;

@@ -57,3 +57,19 @@ properties:
       examples:
       - ssh
       - mdns
+  easymesh:
+    description:
+      An interface can be an easymesh controller, agent or both
+    type: string
+    enum:
+    - controller
+    - agent
+    - hybrid
+  easymesh-backhaul:
+    $ref: "https://uconfig.org/schema/v1/interface/easymesh-backhaul/"
+  easymesh-fronthaul:
+    type: object
+    patternProperties:
+      ".+":
+        $ref: "https://uconfig.org/schema/v1/interface/easymesh-fronthaul/"
+        additionalProperties: false

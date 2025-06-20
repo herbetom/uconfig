@@ -79,6 +79,12 @@
 			generate_psk: false,
 		};
 
+	if (type(ssid.rate_limit) == 'int')
+		ssid.rate_limit = {
+			ingress_rate: ssid.rate_limit,
+			egress_rate: ssid.rate_limit,
+		};
+
 	if (ssid.roaming && ssid.encryption.proto in [ 'wpa', 'psk', 'none' ]) {
 		delete ssid.roaming;
 		warn('Roaming requires wpa2 or later');

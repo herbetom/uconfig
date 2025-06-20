@@ -2,6 +2,7 @@
 
 'use strict';
 
+import * as unetmsg from 'unetmsg.client';
 import * as libubus from 'ubus';
 import * as libuci from 'uci';
 import * as uloop from 'uloop';
@@ -19,6 +20,8 @@ if (capabfile) {
 uloop.init();
 
 let ubus = libubus.connect();
+let chan = unetmsg.open(ubus);
+
 let uci = libuci.cursor();
 uci.load('network');
 
@@ -32,18 +35,24 @@ let carrier = {};
 let events = [];
 let event_count = 0;;
 let ubus_event;
+let max_events = 100;
 
 function event(object, verb, payload) {
-	printf('event -> %s.%s %J\n', object, verb, payload);
-	let event = { object, verb, time: time(), ...payload };
+	let event = object;
+	let local_event = event && object && payload;
+	if (local_event)
+		event = { object, verb, time: time(), ...payload };
+	printf('event -> %s.%s %J\n', event.object, event.verb, event);
 	push(events, event);
-	if (event_count >= 100)
+	if (event_count >= max_events)
 		shift(events);
 	else
 		event_count++;
 
 	if (ubus_event)
 		ubus_event.notify('event', event);
+	if (local_event)
+		chan.send('uevent', 'event', { event });
 }
 
 let handlers;
@@ -97,7 +106,7 @@ handlers = {
 
 	'key-mismatch': function(notify, hapd) {
 		event('client', 'key-mismatch', {
-			client: notify.data.address,
+			mac: notify.data.address,
 			ssid: hapd.ssid,
 			bssid: hapd.bssid,
 		});
@@ -215,8 +224,8 @@ function log_subscriber_notify_cb(notify) {
 		break;
 	case 'uconfig.server':
 		data = split(msg[1], ' ');
-		if (data[1] in ['connected', 'disconnected'])
-			event('webui', data[1],  { ip: split(data[0], ':')[0] });
+		if (data[1] in ['logged-in', 'logged-out', 'disconnected', 'wrong-password' ] && data[2])
+			event('webui', data[1], { ip: split(data[0], ':')[0], user: data[2] });
 		break;
 	}
 }
@@ -335,6 +344,16 @@ let ubus_methods = {
 		}
 	},
 };
+
+chan.subscribe('uevent', (req) => {
+	switch(req.args.type) {
+	case 'event':
+		req.args.data.event.host = req.args.host;
+		event(req.args.data.event);
+		break;
+	}
+});
+chan.publish('uevent', (req) => { return 0 });
 
 hapd_subscriber = ubus.subscriber(hapd_subscriber_notify_cb, hapd_subscriber_remove_cb);
 log_subscriber = ubus.subscriber(log_subscriber_notify_cb, log_subscriber_remove_cb);
