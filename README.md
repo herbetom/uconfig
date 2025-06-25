@@ -35,3 +35,17 @@ In addition you can call the following to get timestamped system events in JSON 
 
 * for all features to work a full version of wpad needs to be installed
 * fingerprinting and dhcp snooping require a BPF toolchain
+
+
+## Include Feed
+
+In a live system:
+
+```sh
+
+(source /etc/openwrt_release && \
+echo "https://download.uconfig.tomhe.de/snapshots/packages/${DISTRIB_ARCH}/uconfig/packages.adb" >> /etc/apk/repositories.d/customfeeds.list && \
+wget -O /etc/apk/keys/uconfig.pem https://download.uconfig.tomhe.de/snapshots/packages/${DISTRIB_ARCH}/repokey.pub)
+apk update
+apk add uconfig
+```
