@@ -1,0 +1,50 @@
+name: OpenWrt Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+
+jobs:
+  openwrt-build:
+    name: ${{ matrix.release }} - ${{ matrix.arch }} build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - SNAPSHOT
+          - openwrt-24.10
+          - openwrt-23.05
+        arch:
+          - x86_64
+          #- aarch64_cortex-a53
+          #- arm_cortex-a7_neon-vfpv4
+          #- mipsel_24kc
+          #- mips_24kc
+          #- powerpc_8548
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: apt tree
+        run: sudo apt-get update; sudo apt-get install tree
+
+      - name: Build
+        uses: openwrt/gh-action-sdk@v9
+        env:
+          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
+          PACKAGES: "uconfig"
+          #V: "s"
+
+      - name: output file tree
+        run: tree -f
+
+      - name: Store packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release }}-${{ matrix.arch}}-packages
+          path: |
+            bin/packages/${{ matrix.arch }}/*/*.ipk
+            bin/packages/${{ matrix.arch }}/*/*.apk
