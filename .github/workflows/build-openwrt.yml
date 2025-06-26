@@ -36,7 +36,7 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.release }}
           PACKAGES: "uconfig"
-          #V: "s"
+          V: "sc"
 
       - name: output file tree
         run: tree -f
