@@ -18,7 +18,7 @@ let model = datamodel.new();
 model.add_modules();
 model.init();
 let cli = model.context();
-cli = cli.select([ 'uconfig' ]);
+cli = cli.select(['uconfig']);
 let fingerprints = {};
 let wan_traffic = {
 	up: [],
@@ -175,7 +175,7 @@ function network_interfaces() {
 	l3_devices = {};
 
 	for (let iface in ifaces.interface) {
-		if (iface.interface in ['main', 'guest', 'uplink'])
+		if (iface.interface in ['main', 'guest'])
 			l3_devices[iface.l3_device] = iface.interface;
 	}
 }
@@ -327,20 +327,27 @@ function update_devices_db() {
 		}
 	}
 	for (let k, v in devices_db) {
-		if (lc(v.hostname) in devices.main) {
-			devices.main[lc(v.hostname)].created = v.created;
-			continue;
-		}
-		if (lc(v.mac) in devices.main) {
-			devices.main[lc(v.mac)].created = v.created;
-			continue;
-		}
-		if (v.hostname || v.mac) {
-			let id = lc(v.hostname || v.mac);
+		let id;
+		if (lc(v.hostname_override) in devices.main) {
+			id = lc(v.hostname_override);
+		} else if (lc(v.hostname) in devices.main) {
+			id = lc(v.hostname);
+		} else if (lc(v.mac) in devices.main) {
+			id = lc(v.mac);
+		} else if (v.hostname || v.mac) {
+			id = lc(v.hostname || v.mac);
 			devices.main[id] = {};
-			for (let key in [ 'mac', 'fingerprint', 'hostname', 'created' ])
+			for (let key in [ 'mac', 'fingerprint', 'hostname' ])
 				if (v[key])
 					devices.main[id][key] = v[key];
+		}
+		if (id) {
+			devices.main[id].created = v.created;
+			if (v.hostname_override) {
+				devices.main[v.hostname_override] = devices.main[id];
+				devices.main[v.hostname_override].hostname_override = true;
+				delete devices.main[id];
+			}
 		}
 	}
 
@@ -416,6 +423,22 @@ let ubus_methods = {
 		},
 		args: {
 			arp: true
+		}
+	},
+	device_hostname: {
+		call: function(req) {
+			if (!req.args.mac || !req.args.hostname)
+				return libubus.STATUS_INVALID_ARGUMENT;
+			let mac = lc(req.args.mac);
+			if (!devices_db[mac])
+				return libubus.STATUS_INVALID_ARGUMENT;
+			devices_db[mac].hostname_override = req.args.hostname;
+			writefile('/etc/uconfig/devices/' + mac, devices_db[mac]);
+			return libubus.STATUS_OK;
+		},
+		args: {
+			mac: '00:00:00:00:00:00',
+			hostname: 'hostanme',
 		}
 	},
 	ports: {

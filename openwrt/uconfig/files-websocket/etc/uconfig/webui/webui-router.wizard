@@ -22,7 +22,7 @@
 	"interfaces": {
 		"uplink": {
 			"role": "upstream",
-			"services": [ "mdns", "ssh", "webui", "fingerprint" ],
+			"services": [ ],
 			"vlan": {
 				"trunks": [ 100 ]
 			},

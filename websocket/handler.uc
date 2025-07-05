@@ -68,8 +68,8 @@ let cli = model.context();
 cli = cli.select([ 'uconfig' ]);
 //cli.call(['event', 'subscribe']);
 
-function send_authenticated(connection) {
-	send(connection, [ 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.type, modules: installed_modules() }]);
+function send_authenticated(connection, event) {
+	send(connection, [ event ? event : 'authenticated', { pending_changes: !!model.uconfig.changed, mode: global.settings.type, modules: installed_modules() }]);
 }
 
 function send_setup_required(connection) {
@@ -148,6 +148,12 @@ let states = {
 	},
 
 	devices: function(connection, data, cli) {
+		switch(data[1]) {
+		case 'hostname':
+			if (length(data) < 4)
+				return null;
+			return ubus.call('state', 'device_hostname', { mac: data[2], hostname: data[3] });
+		}
 		return ubus.call('state', 'devices', { arp: data[1] == 'arp' });
 	},
 
@@ -344,7 +350,7 @@ let handlers = {
 		cli.call([ 'reset' ]);
 		
 		connection.data().authenticated = true;
-		send_authenticated(connection);
+		send_authenticated(connection, 'setup-complete');
 	},
 
 	'firmware-check': function(connection, data) {
