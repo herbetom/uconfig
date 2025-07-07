@@ -343,10 +343,12 @@ function update_devices_db() {
 				if (v[key])
 					devices.main[id][key] = v[key];
 		}
-		if (id)
+		if (id) {
 			devices.main[id].created = v.created;
-		if (id && v.name)
-			devices.main[id].name = v.name;
+			devices.main[id].ignore = !!v.ignore;
+			if (v.name)
+				devices.main[id].name = v.name;
+		}
 	}
 
 	devices.main = sort(devices.main, (k1, k2, v1, v2) => {
@@ -443,9 +445,25 @@ let ubus_methods = {
 			hostname: 'hostanme',
 		}
 	},
-	devices_delete: {
+	device_ignore: {
 		call: function(req) {
-			if (!req.args.mac || !req.args.hostname)
+			if (!req.args.mac)
+				return libubus.STATUS_INVALID_ARGUMENT;
+			let mac = lc(req.args.mac);
+			if (!devices_db[mac])
+				return libubus.STATUS_INVALID_ARGUMENT;
+			devices_db[mac].ignore = true;
+			writefile('/etc/uconfig/devices/' + mac, devices_db[mac]);
+			return libubus.STATUS_OK;
+		},
+		args: {
+			mac: '00:00:00:00:00:00',
+			hostname: 'hostanme',
+		}
+	},
+	device_delete: {
+		call: function(req) {
+			if (!req.args.mac)
 				return libubus.STATUS_INVALID_ARGUMENT;
 			let mac = lc(req.args.mac);
 			if (!devices_db[mac])

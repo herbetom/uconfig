@@ -63,25 +63,25 @@
 			"ssids": {
 				"main": {
 					"template": "encrypted",
-					"security": "maximum",
+					"security": "",
 					"ssid": "OpenWrt",
 					"wifi-radios": [
 						"2G", "5G"
 					],
 					"encryption": {
-						"key": "aaaaaaaa"
+						"key": ""
 					}
 				},
 				"mesh": {
 					"disable": true,
 					"template": "batman",
-					"ssid": "MeshUplink",
+					"ssid": "",
 					"wifi-radios": [
 						"5G"
 					],
 					"bss-mode": "mesh",
 					"encryption": {
-						"key": "aaaaaaaa",
+						"key": "",
 						"ieee80211w": "required"
 					}
 				}
@@ -117,14 +117,14 @@
 				"guest": {
 					"template": "encrypted",
 					"security": "maximum",
-					"ssid": "OpenWrt-Guest",
+					"ssid": "",
 					"isolate-clients": true,
 					"rate-limit": 0,
 					"wifi-radios": [
 						"2G", "5G"
 					],
 					"encryption": {
-						"key": "aaaaaaaa"
+						"key": ""
 					}
 				}
 			}

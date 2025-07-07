@@ -157,6 +157,10 @@ let states = {
 			if (length(data) < 3)
 				return null;
 			return ubus.call('state', 'device_delete', { mac: data[2] });
+		case 'ignore':
+			if (length(data) < 3)
+				return null;
+			return ubus.call('state', 'device_ignore', { mac: data[2] });
 		}
 		return ubus.call('state', 'devices', { arp: data[1] == 'arp' });
 	},
@@ -276,6 +280,11 @@ let handlers = {
 		let ret = { };
 		for (let name, path in data[0]) {
 			let data = cli.call(path);
+			for (let k, v in data.data)
+				if (type(v) == 'bool')
+					data.data[k] = v ? '1' : '0';
+				else if (type(v) == 'int')
+					data.data[k] = '' + v;
 			ret[name] = data.data;
 		}
 		send(connection, [ 'result', id, ret ]);
