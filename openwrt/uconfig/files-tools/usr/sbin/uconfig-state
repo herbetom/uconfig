@@ -3,7 +3,7 @@
 'use strict';
 
 import * as datamodel from 'cli.datamodel';
-import { readfile, writefile, glob, popen } from 'fs';
+import { readfile, writefile, glob, popen, unlink } from 'fs';
 import * as nl80211 from 'nl80211';
 import * as libubus from 'ubus';
 import * as uloop from 'uloop';
@@ -294,7 +294,7 @@ function lookup_devices() {
 		if (!station?.network)
 			continue;
 		devices[station.network] ??= {};
-		devices[station.network][lc(station.hostname || mac)] = station;
+		devices[station.network][lc(mac)] = station;
 		station.mac = mac;
 		if (station.network)
 			delete station.network;
@@ -305,6 +305,12 @@ function lookup_devices() {
 
 function update_fingerprint() {
 	fingerprints = ubus.call('fingerprint', 'fingerprint');
+}
+
+function device_key(device) {
+	for (let key in [ 'name', 'hostname', 'mac' ])
+		if (device[key])
+			return lc(device[key]);
 }
 
 function update_devices_db() {
@@ -328,28 +334,24 @@ function update_devices_db() {
 	}
 	for (let k, v in devices_db) {
 		let id;
-		if (lc(v.hostname_override) in devices.main) {
-			id = lc(v.hostname_override);
-		} else if (lc(v.hostname) in devices.main) {
-			id = lc(v.hostname);
-		} else if (lc(v.mac) in devices.main) {
+		if (lc(v.mac) in devices.main) {
 			id = lc(v.mac);
-		} else if (v.hostname || v.mac) {
-			id = lc(v.hostname || v.mac);
+		} else if (v.mac) {
+			id = lc(v.mac);
 			devices.main[id] = {};
 			for (let key in [ 'mac', 'fingerprint', 'hostname' ])
 				if (v[key])
 					devices.main[id][key] = v[key];
 		}
-		if (id) {
+		if (id)
 			devices.main[id].created = v.created;
-			if (v.hostname_override) {
-				devices.main[v.hostname_override] = devices.main[id];
-				devices.main[v.hostname_override].hostname_override = true;
-				delete devices.main[id];
-			}
-		}
+		if (id && v.name)
+			devices.main[id].name = v.name;
 	}
+
+	devices.main = sort(devices.main, (k1, k2, v1, v2) => {
+		return device_key(v1) < device_key(v2) ? -1 : 1;
+	});
 
 	return devices;
 }
@@ -432,13 +434,28 @@ let ubus_methods = {
 			let mac = lc(req.args.mac);
 			if (!devices_db[mac])
 				return libubus.STATUS_INVALID_ARGUMENT;
-			devices_db[mac].hostname_override = req.args.hostname;
+			devices_db[mac].name = req.args.hostname;
 			writefile('/etc/uconfig/devices/' + mac, devices_db[mac]);
 			return libubus.STATUS_OK;
 		},
 		args: {
 			mac: '00:00:00:00:00:00',
 			hostname: 'hostanme',
+		}
+	},
+	devices_delete: {
+		call: function(req) {
+			if (!req.args.mac || !req.args.hostname)
+				return libubus.STATUS_INVALID_ARGUMENT;
+			let mac = lc(req.args.mac);
+			if (!devices_db[mac])
+				return libubus.STATUS_INVALID_ARGUMENT;
+			unlink('/etc/uconfig/devices/' + mac);
+			delete devices_db[mac];
+			return libubus.STATUS_OK;
+		},
+		args: {
+			mac: '00:00:00:00:00:00',
 		}
 	},
 	ports: {

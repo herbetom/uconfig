@@ -153,6 +153,10 @@ let states = {
 			if (length(data) < 4)
 				return null;
 			return ubus.call('state', 'device_hostname', { mac: data[2], hostname: data[3] });
+		case 'delete':
+			if (length(data) < 3)
+				return null;
+			return ubus.call('state', 'device_delete', { mac: data[2] });
 		}
 		return ubus.call('state', 'devices', { arp: data[1] == 'arp' });
 	},
