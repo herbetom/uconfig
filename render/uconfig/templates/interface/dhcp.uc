@@ -4,7 +4,7 @@ let dhcp = ipv4.dhcp_pool || { ignore: 1 };
 let dhcpv6 = ipv6.dhcpv6 || {};
 
 if (interface.role == 'downstream')
-	if (split(interface.ipv4?.subnet))
+	if (split(interface.ipv4?.subnet, '/'))
 		dhcp.use_dns ??= [ split(interface.ipv4.subnet, '/')[0] ];
 
 function use_dns() {
