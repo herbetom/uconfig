@@ -1,3 +1,4 @@
+{% if (batman_adv_master): %}
 {# add the batman interface #}
 set network.batman=interface
 set network.batman.proto=batadv
@@ -5,6 +6,7 @@ set network.batman.multicast_mode=0
 set network.batman.distributed_arp_table=0
 set network.batman.bridge_loop_avoidance=1
 set network.batman.orig_interval=5000
+{% endif %}
 {% if (ethernet.has_vlan(interface)): %}
 {# add the batman_vlan if a VLAN is defined #}
 set network.batman_v{{ this_vid }}=interface

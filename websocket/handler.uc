@@ -280,7 +280,7 @@ let handlers = {
 		let ret = { };
 		for (let name, path in data[0]) {
 			let data = cli.call(path);
-			for (let k, v in data.data)
+			for (let k, v in data?.data)
 				if (type(v) == 'bool')
 					data.data[k] = v ? '1' : '0';
 				else if (type(v) == 'int')
@@ -322,6 +322,19 @@ let handlers = {
 		if (!actions[data[0]])
 			return;
 		actions[data[0]]();
+	},
+
+	'wifi-dyn': function(connection, data) {
+		if (length(data) < 3)
+			return;
+		let id = shift(data);
+		let ret = { ok: true };
+		let reply = ubus.call('wifi-dyn', data[0], data[1]);
+		if (type(reply) == 'object')
+			ret.data = reply; 
+		else if (reply != ubus.STATUS_OK)
+			ret.ok = false;
+		send(connection, [ 'result', id, ret ]);
 	},
 
 	state: function(connection, data, cli) {

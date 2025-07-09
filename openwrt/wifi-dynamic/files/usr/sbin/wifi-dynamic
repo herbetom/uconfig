@@ -52,7 +52,7 @@ function procd_data() {
 		}
 	}
 	ubus.call('service', 'set', {
-		name: 'uconfig-server',
+		name: 'wifi-dynamic',
 		data: { 'wifi-iface': data }
 	});
 
@@ -161,6 +161,9 @@ let ubus_methods = {
 			let network = active[req.args.network];
 			if (network) {
 				ret.active = true;
+				ret.ssid = network.config.ssid;
+				ret.key = network.config.key;
+				ret.encryption = network.config.encryption;
 				if (network.timer)
 					ret.remaining = network.timer.remaining() / 1000;
 			}

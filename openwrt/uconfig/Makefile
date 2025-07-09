@@ -29,7 +29,7 @@ define Package/uconfig
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer
-  DEPENDS=+ucode-mod-nl80211 +ucode-mod-rtnl +ucode-mod-ubus +ip-full +ip-bridge +ratelimit +qosify +pkgen +nlbwmon
+  DEPENDS=+ucode-mod-nl80211 +ucode-mod-rtnl +ucode-mod-ubus +ip-full +ip-bridge +ratelimit +qosify +pkgen +nlbwmon +wifi-dynamic
 endef
 
 define Package/uconfig-cli

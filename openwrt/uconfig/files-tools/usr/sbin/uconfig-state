@@ -20,16 +20,41 @@ model.init();
 let cli = model.context();
 cli = cli.select(['uconfig']);
 let fingerprints = {};
-let wan_traffic = {
-	up: [],
-	down: []
-};
-
 let devices_db = {};
 
-function check_mac(mac) {
-	mac = lc(mac);
-	return (match(mac, /33:33:.*/) || match(mac, /01:00:5e.*/) || match(mac, /ff:ff:ff.*/));
+let wan_traffic = {
+	up: [ [], [], [], [], ],
+	down: [ [], [], [], [], ],
+	tx_bytes: [],
+	rx_bytes: [],
+	interval: [],
+};
+
+function traffic_fill(index, count) {
+	for (let i = 0; i < count; i++) {
+		push(wan_traffic.up[index], 0);
+		push(wan_traffic.down[index], 0);
+	}
+}
+
+traffic_fill(0, 12);
+traffic_fill(1, 60);
+traffic_fill(2, 24);
+traffic_fill(3, 7);
+
+function traffic_update(statistics, index, interval) {
+	if (wan_traffic.tx_bytes[index]) {
+		push(wan_traffic.up[index], statistics.tx_bytes - wan_traffic.tx_bytes[index]);
+		shift(wan_traffic.up[index]);
+	}
+	if (wan_traffic.rx_bytes[index]) {
+		push(wan_traffic.down[index], statistics.rx_bytes - wan_traffic.rx_bytes[index]);
+		shift(wan_traffic.down[index]);
+	}
+
+	wan_traffic.tx_bytes[index] = statistics.tx_bytes;
+	wan_traffic.rx_bytes[index] = statistics.rx_bytes;
+	wan_traffic.interval[index] = interval;
 }
 
 function traffic() {
@@ -38,18 +63,22 @@ function traffic() {
 
 	if (!statistics)
 		return;
+	
+	traffic_update(statistics, 0, 0);
 
-	if (wan_traffic.tx_bytes) {
-		push(wan_traffic.up, statistics.tx_bytes - wan_traffic.tx_bytes);
-		shift(wan_traffic.up);
+	let now = gmtime();
+	let keys = [ null, 'min', 'hour', 'wday' ];
+	for (let i = 1; i < 4; i++) {
+		let interval = now[keys[i]];
+		if (wan_traffic.interval[i] == interval)
+			continue;
+		traffic_update(statistics, i, interval);
 	}
-	if (wan_traffic.rx_bytes) {
-		push(wan_traffic.down, statistics.rx_bytes - wan_traffic.rx_bytes);
-		shift(wan_traffic.down);
-	}
+}
 
-	wan_traffic.tx_bytes = statistics.tx_bytes;
-	wan_traffic.rx_bytes = statistics.rx_bytes;
+function check_mac(mac) {
+	mac = lc(mac);
+	return (match(mac, /33:33:.*/) || match(mac, /01:00:5e.*/) || match(mac, /ff:ff:ff.*/));
 }
 
 function arp_discover() {
@@ -510,11 +539,6 @@ let ubus_methods = {
 		}
 	},
 };
-
-for (let i = 0; i < 12; i++) {
-	push(wan_traffic.up, 0);
-	push(wan_traffic.down, 0);
-}
 
 load_devices_db();
 

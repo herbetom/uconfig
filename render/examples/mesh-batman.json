@@ -31,7 +31,7 @@
 			},
 			"ssids": {
 				"mesh": {
-		                        "template": "mesh",
+		                        "template": "batman-adv",
 					"ssid": "mesh",
 		                        "wifi-radios": [
 		                                "5G"

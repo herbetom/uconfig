@@ -57,7 +57,7 @@
 			new.ieee80211w = (ssid.security == 'compatibility') ? 'optional' : 'required';
 			break;
 		
-		case 'batman':
+		case 'batman-adv':
 			new.wifi_radios = [ '5G' ];
 			new.bss_mode = 'mesh';
 			new.hidden = true;

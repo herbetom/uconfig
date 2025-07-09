@@ -118,20 +118,30 @@
 	 * generate the actual UCI sections
 	 */
 
-	/* Do we have a batman mesh ? */
-	let batman = false;
-	for (let k, v in interface.ssids)
-		if (!v.disable && (v.template == 'batman' || v.bss_mode == 'mesh'))
-			batman = true;
-	if (batman)	
-		include('interface/mesh-batman.uc', { interface, name, eth_ports, location, netdev, ipv4_mode, ipv6_mode, this_vid });
+	/* Do we have a batman_adv mesh ? */
+	let batman_adv = !!interface.vlan?.batman_adv;
+	let batman_adv_master = false;
+	for (let i, iface in state.interfaces) {
+		if (iface.role != interface.role || iface.disable)
+			confinue;
+		for (let k, v in iface.ssids)
+			if (!v.disable && (v.template == 'batman-adv' || v.bss_mode == 'mesh')) {
+				if (iface == interface || interface.vlan?.id)
+					batman_adv = true;
+				if (iface == interface)
+					batman_adv_master = true;
+			}
+	}
 
-	if (!interface.ports && length(interface.ssids) == 1 && !batman)
+	if (batman_adv)	
+		include('interface/mesh-batman-adv.uc', { interface, name, eth_ports, location, netdev, ipv4_mode, ipv6_mode, this_vid, batman_adv_master });
+
+	if (!interface.ports && length(interface.ssids) == 1 && !batman_adv)
 		/* interfaces with a single ssid and no mesh do not need a bridge */
 		netdev = '';
 	else
 		/* anything else requires a bridge-vlan */
-		include('interface/bridge-vlan.uc', { interface, netdev, eth_ports, this_vid, bridgedev, batman, easymesh_agent });
+		include('interface/bridge-vlan.uc', { interface, netdev, eth_ports, this_vid, bridgedev, batman_adv, easymesh_agent });
 
 	/* generate UCI common to all interfaces */
 	include('interface/common.uc', {
