@@ -125,7 +125,7 @@ define Package/uconfig-mod-mesh-easy
   CATEGORY:=Utilities
   SUBMENU:=uConfig
   TITLE:=UCI renderer (mesh-easy plugin)
-  DEPENDS=uconfig umapd
+  DEPENDS=uconfig +umap-agent +umap-controller
 endef
 
 define Build/Prepare
