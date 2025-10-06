@@ -6,7 +6,7 @@ PKG_RELEASE:=1
 PKG_LICENSE:=GPL-2.0
 PKG_MAINTAINER:=John Crispin <john@phrozen.org>
 
-PKG_SOURCE_URL=https://github.com/blogic/ulldpd.git
+PKG_SOURCE_URL=https://github.com/herbetom/ulldpd.git
 PKG_MIRROR_HASH:=b1966d03b832f2db5ae8d3b152b98eba8138e5e3c3e24c943445655f10d8a047
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_DATE:=2024-09-30
