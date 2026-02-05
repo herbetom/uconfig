@@ -55,6 +55,7 @@
 		case 'enterprise':
 			new.encryption.proto = (ssid.security == 'compatibility') ? 'wpa3-mixed' : 'wpa3';
 			new.ieee80211w = (ssid.security == 'compatibility') ? 'optional' : 'required';
+			new.encryption.radius_server = ssid.encryption?.radius_server;
 			break;
 		
 		case 'batman-adv':
