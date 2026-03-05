@@ -39,7 +39,7 @@ jobs:
           - mipsel_24kc              # (ramips-mt7620, ramips-mt7621, ramips-mt76x8, ramips-rt305x)
           - arm_cortex-a7_neon-vfpv4 # (ipq40xx-generic, ...)
           - mips_24kc                # (ath79-generic, ath79-nand, realtek-rtl839x, realtek-rtl930x, ...)
-          #- powerpc_8548             # (mpc85xx-p1010, mpc85xx-p1020, mpc85xx-p2020)
+          - powerpc_8548             # (mpc85xx-p1010, mpc85xx-p1020, mpc85xx-p2020)
 
     steps:
       - uses: actions/checkout@v4
